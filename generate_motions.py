@@ -23,7 +23,7 @@ import numpy as np
 from pathlib import Path
 
 # ── config ────────────────────────────────────────────────────────────────────
-RESULT_DIR = Path("data/motionbricks")
+RESULT_DIR = Path(__file__).parent / "data" / "motionbricks"
 RESULT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Motion types — exact allowed_mode keys from clip_holder_G1 in
@@ -54,41 +54,54 @@ def generate_clip(demo_agent, mode: str, n_frames: int, seed: int) -> np.ndarray
     Returns: (n_frames, 36) float32 qpos array in MuJoCo format.
     """
     import torch
+    import mujoco
     np.random.seed(seed)
     torch.manual_seed(seed)
 
     demo_agent.full_agent.reset()
     qpos_list = []
 
-    for step in range(n_frames):
-        control_signals = {
-            "force_idle": False,
-            "allowed_mode": mode,
-            "velocity": np.array([0.3, 0.0]),
-            "heading": 0.0,
-        }
+    generate_dt = 2.0  # matches navigation_demo default
 
+    for step in range(n_frames):
         qpos = demo_agent.full_agent.get_next_frame()
         qpos_list.append(qpos.copy())
 
-        context = demo_agent.full_agent.get_context_mujoco_qpos()
-        control_signals["context_mujoco_qpos"] = context
+        context_mujoco_qpos = demo_agent.full_agent.get_context_mujoco_qpos()
+        demo_agent.mj_data.qpos[:] = qpos
+
+        force_idle = step + 100 > n_frames
+        control_signals = demo_agent.controller.generate_control_signals(
+            None, demo_agent.mj_model, demo_agent.mj_data, visualize=False,
+            control_info={"force_idle": force_idle, "allowed_mode": mode}
+        )
+        control_signals["context_mujoco_qpos"] = context_mujoco_qpos
 
         with torch.no_grad():
-            demo_agent.full_agent.generate_new_frames(control_signals, dt=1/30)
+            demo_agent.full_agent.generate_new_frames(
+                control_signals,
+                demo_agent.controller.get_controller_dt() * generate_dt
+            )
+
+        mujoco.mj_forward(demo_agent.mj_model, demo_agent.mj_data)
 
     return np.stack(qpos_list, axis=0).astype(np.float32)
 
 
+MOTIONBRICKS_DIR = Path(__file__).parent.parent / "GR00T-WholeBodyControl" / "motionbricks"
+
+
 def main():
-    sys.path.insert(0, ".")
-    import argparse
+    import os, argparse
     from motionbricks.motion_backbone.demo.utils import navigation_demo
 
+    # MotionBricks resolves asset paths relative to its own directory
+    original_dir = Path.cwd()
+    os.chdir(MOTIONBRICKS_DIR)
+
+    # Let navigation_demo resolve humanoid_xml, result_dir, data_root from the
+    # package install location — only override fields that don't have sensible defaults.
     args = argparse.Namespace(
-        humanoid_xml="assets/skeletons/g1/scene_29dof.xml",
-        result_dir="./out",
-        data_root="./datasets",
         explicit_dataset_folder=None,
         reprocess_clips=0,
         controller="random",
@@ -134,6 +147,7 @@ def main():
             except Exception as e:
                 print(f"    FAILED: {e}")
 
+    os.chdir(original_dir)
     np.save(RESULT_DIR / "motion_labels.npy", labels)
     print(f"\nDone. {len(labels)} clips saved to {RESULT_DIR}/")
     print("Run evaluation with: python run_eval.py --data_dir data/motionbricks")

@@ -3,7 +3,6 @@ Main evaluation script: runs kinematic qpos sequences through physics simulation
 and reports the kinematic-to-dynamic gap metrics.
 
 Usage:
-    conda activate cs348k
     python run_eval.py --data_dir data/synthetic
     python run_eval.py --data_dir data/motionbricks
     python run_eval.py --data_dir data/motionbricks --kinematic_baseline

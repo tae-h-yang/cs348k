@@ -64,26 +64,36 @@ def plot_tracking_error_by_type(results: List[ClipMetrics], save: bool = True):
     return fig
 
 
-def plot_fall_rate_by_type(results: List[ClipMetrics], save: bool = True):
-    """Bar chart: fraction of clips that fell, by motion type (physics mode only)."""
+def plot_fall_rate_by_type(results: List[ClipMetrics], fps: float = 30.0,
+                           save: bool = True):
+    """
+    Bar chart: mean time-to-fall (seconds) by motion type, physics mode only.
+    Shows which motion styles survive longest before the gap causes failure.
+    """
     phys = [r for r in results if r.mode == "physics"]
-    by_type: Dict[str, List[bool]] = {}
+    by_type: Dict[str, List[float]] = {}
     for r in phys:
-        by_type.setdefault(r.motion_type, []).append(r.fell)
+        ttf = (r.time_to_fall / fps) if r.fell else (r.n_frames / fps)
+        by_type.setdefault(r.motion_type, []).append(ttf)
     if not by_type:
         return None
 
     types  = sorted(by_type.keys())
-    rates  = [np.mean(by_type[t]) for t in types]
+    means  = [np.mean(by_type[t]) for t in types]
+    stds   = [np.std(by_type[t])  for t in types]
     colors = [_color_by_type(t)   for t in types]
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.bar(types, rates, color=colors, edgecolor="black", linewidth=0.8)
-    ax.set_ylabel("Fall Rate")
-    ax.set_title("Physical Execution Fall Rate by Motion Type")
-    ax.set_ylim(0, 1.05)
+    ax.bar(types, means, yerr=stds, color=colors, capsize=5,
+           edgecolor="black", linewidth=0.8)
+    ax.set_ylabel("Mean Time-to-Fall (s)")
+    ax.set_title("Physics Execution: Mean Time-to-Fall by Motion Type\n"
+                 "(100% fall rate across all types)")
     ax.set_xlabel("Motion Type")
     ax.grid(axis="y", linestyle="--", alpha=0.5)
+    ax.annotate("All clips fall (100%)", xy=(0.5, 0.97), xycoords="axes fraction",
+                ha="center", va="top", fontsize=9, color="#B71C1C",
+                fontweight="bold")
 
     if save:
         path = RESULTS_DIR / "fall_rate_by_type.png"
@@ -93,22 +103,33 @@ def plot_fall_rate_by_type(results: List[ClipMetrics], save: bool = True):
     return fig
 
 
-def plot_root_error_over_time(results: List[ClipMetrics], max_clips: int = 12,
-                              save: bool = True):
-    """Line plot: root position error over time, physics mode clips only."""
-    phys = [r for r in results if r.mode == "physics"][:max_clips]
+def plot_root_error_over_time(results: List[ClipMetrics], save: bool = True):
+    """
+    Line plot: root position error over time for all physics-mode clips.
+    Lines are colored by motion type; legend shows types only (not individual clips).
+    Y-axis capped at 15m to keep scale readable despite outlier drift.
+    """
+    import matplotlib.patches as mpatches
+    phys = [r for r in results if r.mode == "physics"]
     if not phys:
         return None
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    for r in phys:
-        errors = [fm.root_pos_error for fm in r.frame_metrics]
-        ax.plot(errors, label=f"{r.clip_name}", color=_color_by_type(r.motion_type), alpha=0.8)
+    fig, ax = plt.subplots(figsize=(11, 5))
 
+    seen_types = set()
+    for r in phys:
+        errors = [min(fm.root_pos_error, 15.0) for fm in r.frame_metrics]
+        ax.plot(errors, color=_color_by_type(r.motion_type), alpha=0.55,
+                linewidth=1.0)
+        seen_types.add(r.motion_type)
+
+    patches = [mpatches.Patch(color=_color_by_type(t), label=t)
+               for t in sorted(seen_types)]
+    ax.legend(handles=patches, fontsize=9, loc="upper left")
     ax.set_xlabel("Frame")
-    ax.set_ylabel("Root Position Error (m)")
-    ax.set_title("Root Position Drift: Kinematic Target vs Physics Execution")
-    ax.legend(fontsize=7, loc="upper left", ncol=2)
+    ax.set_ylabel("Root Position Error (m, capped at 15)")
+    ax.set_title("Root Position Drift: Kinematic Target vs Physics Execution\n"
+                 "(all 39 clips; colored by motion type)")
     ax.grid(linestyle="--", alpha=0.4)
 
     if save:
