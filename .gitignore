@@ -1,0 +1,33 @@
+# Generated motion data (run Colab notebook to regenerate)
+data/motionbricks/
+
+# Derived outputs
+results/
+
+# Logs
+MUJOCO_LOG.TXT
+*.log
+
+# External repo clone (not part of this project)
+_groot/
+
+# Claude / MCP config
+.claude/
+.mcp.json
+
+# Other students' proposals (not ours to publish)
+CS\ 348K\ Project\ Proposals.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
