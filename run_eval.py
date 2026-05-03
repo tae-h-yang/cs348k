@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from physics_eval.simulator import PhysicsSimulator
 from analysis.visualize import plot_all
+from analysis.render import render_clip_video
 
 
 def load_motion_dir(data_dir: Path):
@@ -53,6 +54,8 @@ def main():
                         help="Continue simulation even after fall (slower)")
     parser.add_argument("--no_plot", action="store_true",
                         help="Skip visualization")
+    parser.add_argument("--render", action="store_true",
+                        help="Render side-by-side videos (kinematic vs physics) to results/videos/")
     args = parser.parse_args()
 
     data_dir = Path(args.data_dir)
@@ -92,6 +95,12 @@ def main():
             fell_str_k = f"height<0.45m at {sk['time_to_fall']}" if sk['fell'] else "ok"
             print(f"    kinematic→ {fell_str_k} | joint_viol={sk['max_joint_viol']} | "
                   f"foot_pen={sk['foot_penetration_m']:.4f} m")
+
+        if args.render:
+            vid_path = render_clip_video(sim, qpos_seq, clip_name=clip_name,
+                                         motion_type=motion_type,
+                                         side_by_side=args.kinematic_baseline)
+            print(f"    video    → {vid_path}")
 
     print()
     if not args.no_plot:
