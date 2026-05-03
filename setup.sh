@@ -19,15 +19,20 @@ eval "$(conda shell.bash hook)"
 conda activate "${ENV_NAME}"
 
 echo "Installing Python dependencies..."
+# Install torch with CUDA (edit the cu121 suffix to match your CUDA version)
+pip install torch --index-url https://download.pytorch.org/whl/cu121
 pip install -r requirements.txt
 
 echo ""
 echo "=== Setup complete ==="
 echo "Activate the env with:  conda activate ${ENV_NAME}"
-echo "Run evaluation:         python run_eval.py --data_dir data/synthetic"
 echo ""
-echo "To evaluate MotionBricks clips:"
-echo "  1. Open colab/generate_motions.ipynb in Google Colab (GPU runtime)"
-echo "  2. Run all cells — outputs save to Google Drive under cs348k/motionbricks/"
-echo "  3. Download the folder to data/motionbricks/"
-echo "  4. python run_eval.py --data_dir data/motionbricks"
+echo "To generate MotionBricks clips (one-time):"
+echo "  1. Clone and install MotionBricks:"
+echo "       git clone https://github.com/NVlabs/GR00T-WholeBodyControl.git"
+echo "       cd GR00T-WholeBodyControl/motionbricks && git lfs pull && pip install -e . && cd -"
+echo "  2. python generate_motions.py"
+echo ""
+echo "To run evaluation:"
+echo "  python run_eval.py --data_dir data/synthetic    # quick sanity check"
+echo "  python run_eval.py --data_dir data/motionbricks # after generation"

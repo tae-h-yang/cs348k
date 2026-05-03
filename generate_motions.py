@@ -1,17 +1,21 @@
 """
-MotionBricks motion generation script for Google Colab (GPU required).
+MotionBricks motion generation script (local GPU).
 
 Generates diverse kinematic qpos sequences from MotionBricks, categorized
-by motion type, and saves them as .npy files for physics evaluation on MacBook.
+by motion type, and saves them as .npy files for physics evaluation.
 
-Run on Colab:
-    !git clone https://github.com/NVlabs/GR00T-WholeBodyControl.git
-    %cd GR00T-WholeBodyControl/motionbricks
-    !git lfs pull
-    !pip install -e .
-    # Then run this script
+Setup (one-time):
+    git clone https://github.com/NVlabs/GR00T-WholeBodyControl.git
+    cd GR00T-WholeBodyControl/motionbricks
+    git lfs pull
+    pip install -e .
+    cd <this repo>
 
-Output: one .npy file per clip of shape (T, 36) — mujoco qpos format.
+Run:
+    python generate_motions.py
+
+Output: one .npy file per clip of shape (T, 36) — mujoco qpos format,
+        saved to data/motionbricks/.
 """
 
 import sys
@@ -19,8 +23,8 @@ import numpy as np
 from pathlib import Path
 
 # ── config ────────────────────────────────────────────────────────────────────
-RESULT_DIR = Path("generated_motions")
-RESULT_DIR.mkdir(exist_ok=True)
+RESULT_DIR = Path("data/motionbricks")
+RESULT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Motion types — exact allowed_mode keys from clip_holder_G1 in
 # motionbricks/motion_backbone/demo/clips.py
@@ -57,12 +61,10 @@ def generate_clip(demo_agent, mode: str, n_frames: int, seed: int) -> np.ndarray
     qpos_list = []
 
     for step in range(n_frames):
-        # Generate idle control signal with fixed mode
         control_signals = {
             "force_idle": False,
             "allowed_mode": mode,
-            # Minimal control signal — robot holds current direction
-            "velocity": np.array([0.3, 0.0]),   # forward velocity
+            "velocity": np.array([0.3, 0.0]),
             "heading": 0.0,
         }
 
@@ -79,7 +81,6 @@ def generate_clip(demo_agent, mode: str, n_frames: int, seed: int) -> np.ndarray
 
 
 def main():
-    # ── bootstrap MotionBricks ────────────────────────────────────────────────
     sys.path.insert(0, ".")
     import argparse
     from motionbricks.motion_backbone.demo.utils import navigation_demo
@@ -118,7 +119,6 @@ def main():
     demo_agent = navigation_demo(args)
     print("Model loaded.")
 
-    # ── generate ──────────────────────────────────────────────────────────────
     labels = {}
     for cfg in MOTION_CONFIGS:
         mode, n_frames, mtype = cfg["mode"], cfg["n_frames"], cfg["type"]
@@ -136,8 +136,7 @@ def main():
 
     np.save(RESULT_DIR / "motion_labels.npy", labels)
     print(f"\nDone. {len(labels)} clips saved to {RESULT_DIR}/")
-    print("Download the generated_motions/ folder and place it in data/ on your MacBook.")
-    print("Then run: python run_eval.py --data_dir data/generated_motions")
+    print("Run evaluation with: python run_eval.py --data_dir data/motionbricks")
 
 
 if __name__ == "__main__":

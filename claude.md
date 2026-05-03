@@ -26,14 +26,14 @@ Project is **50% of overall course grade** (the other 50% is reading responses +
 
 ## Project
 
-> **Status: active — evaluation harness built and running end-to-end.**
+> **Status: active — evaluation harness complete, all plots paper-ready, awaiting MotionBricks data.**
 
 - **Title:** Kinematic-to-Dynamic Gap in Generative Humanoid Motion
 - **One-line goal:** Quantify how well MotionBricks-generated kinematic trajectories can be physically executed on the Unitree G1 in MuJoCo, and characterize failure modes by motion type.
 - **Key metric / target result:** A chart: motion type × physics difficulty (joint tracking RMSE, root drift, time-to-fall, mechanical power), showing which generated motions are physically feasible vs. not.
-- **Dataset / workload:** MotionBricks-generated qpos sequences (via Colab GPU), categorized by motion style (idle, walk, jog, run, crouch, jump, wave, etc.). Baseline: BONES-SEED raw mocap data evaluated the same way.
+- **Dataset / workload:** MotionBricks-generated qpos sequences (local GPU), categorized by motion style (idle, walk, jog, run, crouch, jump, wave, etc.). Baseline: BONES-SEED raw mocap data evaluated the same way.
 - **Baseline:** Kinematic replay (mj_forward, zero physics) vs. physics execution (mj_step + PD controller).
-- **Stack:** MotionBricks (NVlabs/GR00T-WholeBodyControl) · MuJoCo 3.2.7 · Python · Colab for generation · MacBook for evaluation.
+- **Stack:** MotionBricks (NVlabs/GR00T-WholeBodyControl) · MuJoCo 3.2.7 · PyTorch · Python · NVIDIA GPU (local).
 
 ### Repo structure
 ```
@@ -41,17 +41,19 @@ src/physics_eval/   — simulator, PD controller, metrics
 src/analysis/       — plotting and summary
 assets/g1/          — Unitree G1 MuJoCo model + meshes
 data/synthetic/     — placeholder motions for pipeline testing
-data/motionbricks/  — (to be populated via Colab)
-colab/              — generation scripts to run on Colab GPU
+data/motionbricks/  — generated clips (populated by generate_motions.py)
+generate_motions.py — MotionBricks clip generation (local GPU)
 results/            — output plots and CSVs
 run_eval.py         — main evaluation entry point
 ```
 
 ### Key design decisions
-- **Input format:** `(T, 36)` float32 qpos arrays — completely decoupled from MotionBricks inference. Colab generates, MacBook evaluates.
-- **Controller:** Joint-space PD tracking (29 torque actuators). Simple baseline — the gap it can't close IS the research finding.
-- **Metrics:** joint tracking RMSE, root position drift, time-to-fall, mechanical power, joint limit violations, foot penetration.
-- **Next step (Checkpoint 2 / final):** Add RL-based tracking controller and compare against PD baseline.
+- **Input format:** `(T, 36)` float32 qpos arrays — decoupled from MotionBricks inference. Generation and evaluation both run locally.
+- **Controller:** Joint-space PD with gravity+Coriolis feedforward (`qfrc_bias`). Gains tuned to G1: Kp=200/Kd=10 for legs, matching typical IsaacGym/IsaacLab values. The gap the controller can't close IS the research finding.
+- **Metrics:** joint tracking RMSE (scalar + per-joint 29-dim), root position drift, time-to-fall, mechanical power, joint limit violations, foot penetration, normal contact forces.
+- **Visualizations (6 paper-ready plots):** tracking error by type, fall rate, time-to-fall, root error over time, per-joint heatmap, kinematic-vs-dynamic gap comparison.
+- **Two modes:** `evaluate_clip()` (mj_step + PD) and `evaluate_clip_kinematic()` (mj_forward baseline); `--kinematic_baseline` flag runs both.
+- **Next step (Checkpoint 2 / final):** Run on real MotionBricks data → add RL-based tracking controller → compare PD vs RL gap.
 
 ## Agent Workflow
 

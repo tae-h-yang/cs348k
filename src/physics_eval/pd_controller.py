@@ -43,33 +43,29 @@ import numpy as np
 # 27  right_wrist_pitch
 # 28  right_wrist_yaw
 
-# Actuator force limits from the XML (symmetric)
+# Actuator torque limits — read directly from g1_29dof.xml ctrlrange.
+# (For motor actuators, ctrlrange IS the torque limit; forcerange unused.)
 ACTUATOR_FORCE_LIMITS = np.array([
-    88, 88, 88, 139, 50, 50,   # left leg
-    88, 88, 88, 139, 50, 50,   # right leg
-    88, 88, 88,                 # waist
-    88, 88, 88, 88, 50, 50, 50,  # left arm
-    88, 88, 88, 88, 50, 50, 50,  # right arm
+    88,  88,  88,  139, 50, 50,   # left leg:  hip×3, knee, ankle×2
+    88,  88,  88,  139, 50, 50,   # right leg: hip×3, knee, ankle×2
+    88,  50,  50,                  # waist:     yaw=88, roll=50, pitch=50
+    25,  25,  25,  25,  25,  5,  5,  # left arm:  shoulder×3, elbow, wrist×3
+    25,  25,  25,  25,  25,  5,  5,  # right arm: shoulder×3, elbow, wrist×3
 ], dtype=np.float64)
 
-# PD gains — tuned for G1 morphology.
-# Kp chosen so the bandwidth is ~5-10 Hz per joint group.
-# Kd = 2*sqrt(Kp * inertia) approximation; set conservatively.
-_KP_LEG_HIP    = 100.0
-_KP_LEG_KNEE   = 150.0
-_KP_ANKLE      = 20.0
-_KP_WAIST      = 80.0
-_KP_SHOULDER   = 40.0
-_KP_ELBOW      = 40.0
-_KP_WRIST      = 20.0
-
-_KD_LEG_HIP    = 2.0
-_KD_LEG_KNEE   = 3.0
-_KD_ANKLE      = 0.5
-_KD_WAIST      = 2.0
-_KD_SHOULDER   = 1.0
-_KD_ELBOW      = 1.0
-_KD_WRIST      = 0.5
+# PD gains for the G1 (35 kg, 0.002 s physics timestep).
+# Kd sized for near-critical damping: Kd ≈ 2*sqrt(Kp * J_eff).
+# Effective link inertias (armature=0.01 + body segment) are ~0.1-1 kg·m²,
+# giving Kd_crit ≈ 6-20 for Kp=100-200. Values below keep a safety margin
+# so complex motions still show meaningful tracking error rather than
+# clamping torque every frame.
+_KP_LEG_HIP  = 200.0;  _KD_LEG_HIP  = 10.0
+_KP_LEG_KNEE = 200.0;  _KD_LEG_KNEE = 10.0
+_KP_ANKLE    =  40.0;  _KD_ANKLE    =  4.0
+_KP_WAIST    = 100.0;  _KD_WAIST    =  5.0
+_KP_SHOULDER =  40.0;  _KD_SHOULDER =  4.0
+_KP_ELBOW    =  40.0;  _KD_ELBOW    =  4.0
+_KP_WRIST    =  10.0;  _KD_WRIST    =  1.0
 
 KP = np.array([
     _KP_LEG_HIP, _KP_LEG_HIP, _KP_LEG_HIP, _KP_LEG_KNEE, _KP_ANKLE, _KP_ANKLE,
@@ -100,15 +96,19 @@ class PDController:
         self.force_limits = force_limits
 
     def compute_torques(self, q_target: np.ndarray, q: np.ndarray,
-                        dq_target: np.ndarray, dq: np.ndarray) -> np.ndarray:
+                        dq_target: np.ndarray, dq: np.ndarray,
+                        gravity_comp: np.ndarray | None = None) -> np.ndarray:
         """
         Args:
-            q_target:  (29,) target joint angles
-            q:         (29,) current joint angles (data.qpos[7:])
-            dq_target: (29,) target joint velocities (finite diff of q_target)
-            dq:        (29,) current joint velocities (data.qvel[6:])
+            q_target:     (29,) target joint angles
+            q:            (29,) current joint angles (data.qpos[7:])
+            dq_target:    (29,) target joint velocities (finite diff of q_target)
+            dq:           (29,) current joint velocities (data.qvel[6:])
+            gravity_comp: (29,) optional gravity+Coriolis feedforward (data.qfrc_bias[6:])
         Returns:
-            torques:   (29,) clamped to force limits
+            torques: (29,) clamped to force limits
         """
         tau = self.kp * (q_target - q) + self.kd * (dq_target - dq)
+        if gravity_comp is not None:
+            tau = tau + gravity_comp
         return np.clip(tau, -self.force_limits, self.force_limits)

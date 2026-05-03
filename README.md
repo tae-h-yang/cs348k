@@ -6,34 +6,44 @@ Quantifies how well [MotionBricks](https://github.com/NVlabs/GR00T-WholeBodyCont
 
 ## Setup
 
-Requires [conda](https://docs.conda.io/en/latest/miniconda.html).
+Requires [conda](https://docs.conda.io/en/latest/miniconda.html) and an NVIDIA GPU.
 
 ```bash
 bash setup.sh
 conda activate cs348k
 ```
 
+## Generating MotionBricks Data
+
+Clone and install MotionBricks (one-time):
+
+```bash
+git clone https://github.com/NVlabs/GR00T-WholeBodyControl.git
+cd GR00T-WholeBodyControl/motionbricks
+git lfs pull
+pip install -e .
+cd -
+```
+
+Then generate clips (writes to `data/motionbricks/`):
+
+```bash
+python generate_motions.py
+```
+
 ## Running the Evaluation
 
-**Synthetic baseline** (no data download needed):
+**Synthetic baseline** (no data generation needed):
 ```bash
 python run_eval.py --data_dir data/synthetic
 ```
 
-**MotionBricks clips** (requires Colab generation first — see below):
+**MotionBricks clips** (after running `generate_motions.py`):
 ```bash
 python run_eval.py --data_dir data/motionbricks
 ```
 
 Results (plots + CSV) are written to `results/`.
-
-## Generating MotionBricks Data
-
-Motion clips are generated on a Colab GPU and are not committed to this repo.
-
-1. Open `colab/generate_motions.ipynb` in [Google Colab](https://colab.research.google.com) with a GPU runtime (Runtime → Change runtime type → T4 GPU)
-2. Run all cells — clips save to Google Drive under `cs348k/motionbricks/`
-3. Download the folder and place it at `data/motionbricks/`
 
 ## Project Structure
 
@@ -42,7 +52,8 @@ src/physics_eval/   — MuJoCo simulator, PD controller, metrics
 src/analysis/       — plotting and summary
 assets/g1/          — Unitree G1 MuJoCo model + meshes
 data/synthetic/     — small synthetic motions for pipeline testing
-colab/              — Colab generation notebook + script
+data/motionbricks/  — generated clips (populated by generate_motions.py)
+generate_motions.py — MotionBricks clip generation (local GPU)
 run_eval.py         — evaluation entry point
 ```
 

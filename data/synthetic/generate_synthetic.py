@@ -12,25 +12,33 @@ from pathlib import Path
 OUTPUT_DIR = Path(__file__).parent
 # With all joints at 0, the ankle_roll links sit 0.036m above the ground.
 # To put the feet on the ground, lower the pelvis by that offset.
-NOMINAL_ROOT_HEIGHT = 0.793 - 0.036  # ≈ 0.757m — feet at ground contact
+NOMINAL_ROOT_HEIGHT = 0.750  # natural standing height with bent knees
 FPS = 30
 DT = 1.0 / FPS
 
 
 def _standing_qpos(root_height: float = NOMINAL_ROOT_HEIGHT) -> np.ndarray:
     """
-    Zero-joint standing pose. All joints at 0, pelvis lowered so feet touch ground.
-    (With all joints at 0, the G1 ankle_roll links sit 0.036m above the ground;
-    subtracting that from the nominal XML pelvis height of 0.793m gives 0.757m.)
+    Natural standing pose for the G1: slight knee bend and hip flex, feet on ground.
+    All-zeros joint config is physically degenerate (fully-extended legs bounce off
+    the ground under high-gain PD). This pose is the natural neutral stance.
     """
     q = np.zeros(36)
     q[2] = root_height
     q[3] = 1.0  # quaternion w (identity)
+    # Left leg
+    q[7 + 0] = -0.10   # hip pitch (slight forward lean)
+    q[7 + 3] =  0.30   # knee (slight bend)
+    q[7 + 4] = -0.20   # ankle pitch (plantarflexion to compensate knee)
+    # Right leg
+    q[7 + 6] = -0.10
+    q[7 + 9] =  0.30
+    q[7 + 10] = -0.20
     return q
 
 
 def generate_static_stand(n_frames: int = 150) -> np.ndarray:
-    """Robot stands still. Should execute perfectly — zero gap expected."""
+    """Robot holds a natural standing pose. Baseline for the evaluation."""
     base = _standing_qpos()
     return np.tile(base, (n_frames, 1))
 
@@ -46,23 +54,24 @@ def generate_slow_walk(n_frames: int = 200, speed: float = 0.5) -> np.ndarray:
     omega = 2 * np.pi * freq
 
     qpos = np.zeros((n_frames, 36))
+    base = _standing_qpos()
 
     # Root trajectory
     qpos[:, 0] = speed * t                  # x: walk forward
     qpos[:, 2] = NOMINAL_ROOT_HEIGHT + 0.02 * np.sin(2 * omega * t)  # z: slight bob
     qpos[:, 3] = 1.0                         # quaternion w
 
-    # Hip pitch (joints 0, 6): alternating swing
-    qpos[:, 7 + 0] =  0.4 * np.sin(omega * t)   # left hip pitch
-    qpos[:, 7 + 6] = -0.4 * np.sin(omega * t)   # right hip pitch
+    # Hip pitch: natural stance offset (-0.1) ± swing amplitude
+    qpos[:, 7 + 0] = -0.10 + 0.4 * np.sin(omega * t)   # left hip pitch
+    qpos[:, 7 + 6] = -0.10 - 0.4 * np.sin(omega * t)   # right hip pitch
 
-    # Knee (joints 3, 9): always slightly bent, more during swing
-    qpos[:, 7 + 3] = 0.3 + 0.3 * np.abs(np.sin(omega * t))     # left knee
-    qpos[:, 7 + 9] = 0.3 + 0.3 * np.abs(np.sin(omega * t + np.pi))  # right knee
+    # Knee: always bent, more during swing phase
+    qpos[:, 7 + 3] = 0.3 + 0.3 * np.abs(np.sin(omega * t))
+    qpos[:, 7 + 9] = 0.3 + 0.3 * np.abs(np.sin(omega * t + np.pi))
 
-    # Ankle pitch (joints 4, 10): slight push-off
-    qpos[:, 7 + 4]  = -0.1 * np.sin(omega * t)
-    qpos[:, 7 + 10] =  0.1 * np.sin(omega * t)
+    # Ankle pitch: push-off around natural stance offset (-0.2)
+    qpos[:, 7 + 4]  = -0.20 - 0.1 * np.sin(omega * t)
+    qpos[:, 7 + 10] = -0.20 + 0.1 * np.sin(omega * t)
 
     return qpos
 
