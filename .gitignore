@@ -3,10 +3,18 @@ data/motionbricks/
 
 # Derived outputs
 results/
+handoff/
 
 # Logs
 MUJOCO_LOG.TXT
 *.log
+
+# LaTeX build byproducts; keep paper/*.tex, references.bib, and optionally PDF.
+*.aux
+*.blg
+*.fdb_latexmk
+*.fls
+*.out
 
 # External repo clone (not part of this project)
 _groot/

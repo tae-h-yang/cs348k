@@ -15,6 +15,8 @@ import mujoco
 import imageio
 from pathlib import Path
 from typing import Optional
+from physics_eval.metrics import FALL_HEIGHT_THRESHOLD
+from physics_eval.validation import validate_qpos_sequence
 
 RESULTS_DIR = Path(__file__).parents[2] / "results"
 VIDEO_DIR = RESULTS_DIR / "videos"
@@ -67,7 +69,7 @@ def render_clip_video(
     Returns:
         Path to the saved video file.
     """
-    assert qpos_seq.ndim == 2 and qpos_seq.shape[1] == 36
+    qpos_seq = validate_qpos_sequence(qpos_seq, name=clip_name, min_frames=2)
 
     if output_path is None:
         output_path = VIDEO_DIR / f"{clip_name}.mp4"
@@ -122,13 +124,15 @@ def render_clip_video(
                 data_phys.qvel[6:].copy(), gravity_comp=data_phys.qfrc_bias[6:].copy()
             )
             data_phys.ctrl[:] = torques
-            for _ in range(sim.substeps):
+            for _ in range(sim._substeps_for_frame(t)):
                 mujoco.mj_step(model, data_phys)
             np.clip(data_phys.qvel, -sim.MAX_VEL, sim.MAX_VEL, out=data_phys.qvel)
             if not np.isfinite(data_phys.qpos).all():
                 fell = True
 
-        if data_phys.qpos[2] < 0.30:
+        tracking_rmse = float(np.sqrt(np.mean((data_phys.qpos[7:] - qpos_seq[t, 7:]) ** 2)))
+
+        if data_phys.qpos[2] < FALL_HEIGHT_THRESHOLD:
             fell = True
 
         phys_xy = data_phys.qpos[:2].copy()
@@ -141,9 +145,12 @@ def render_clip_video(
             frame = np.concatenate([frame_kin, divider, frame_phys], axis=1)
             _add_label(frame, "Kinematic (no physics)", x=10)
             _add_label(frame, f"Physics PD  [{clip_name}]", x=WIDTH + 14)
+            _add_label(frame, f"t={t / FPS_OUT:.2f}s", x=10, y=44)
+            _add_label(frame, f"RMSE={tracking_rmse:.2f} rad", x=WIDTH + 14, y=44)
         else:
             frame = frame_phys
             _add_label(frame, f"Physics PD  [{clip_name}]", x=10)
+            _add_label(frame, f"t={t / FPS_OUT:.2f}s  RMSE={tracking_rmse:.2f} rad", x=10, y=44)
 
         if fell:
             _add_label(frame, "FELL", x=w // 2 - 20, y=HEIGHT - 20, color=(255, 60, 60))
@@ -154,6 +161,36 @@ def render_clip_video(
     if renderer_kin:
         renderer_kin.close()
 
+    imageio.mimwrite(str(output_path), frames, fps=FPS_OUT, macro_block_size=1)
+    return output_path
+
+
+def render_reference_video(
+    sim,
+    qpos_seq: np.ndarray,
+    clip_name: str = "clip",
+    output_path: Optional[Path] = None,
+) -> Path:
+    """Render a clean kinematic-reference video with no physics rollout."""
+    qpos_seq = validate_qpos_sequence(qpos_seq, name=clip_name, min_frames=1)
+    if output_path is None:
+        output_path = VIDEO_DIR / f"reference_{clip_name}.mp4"
+
+    model = sim.model
+    data = mujoco.MjData(model)
+    renderer = mujoco.Renderer(model, height=HEIGHT, width=WIDTH)
+    frames = []
+
+    for t in range(len(qpos_seq)):
+        mujoco.mj_resetData(model, data)
+        data.qpos[:] = qpos_seq[t]
+        mujoco.mj_forward(model, data)
+        frame = _render_frame(renderer, data, data.qpos[:2].copy())
+        _add_label(frame, f"Kinematic reference [{clip_name}]", x=10)
+        _add_label(frame, f"t={t / FPS_OUT:.2f}s", x=10, y=44)
+        frames.append(frame)
+
+    renderer.close()
     imageio.mimwrite(str(output_path), frames, fps=FPS_OUT, macro_block_size=1)
     return output_path
 

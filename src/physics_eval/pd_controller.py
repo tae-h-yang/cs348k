@@ -53,7 +53,10 @@ ACTUATOR_FORCE_LIMITS = np.array([
     25,  25,  25,  25,  25,  5,  5,  # right arm: shoulder×3, elbow, wrist×3
 ], dtype=np.float64)
 
-# PD gains for the G1 (35 kg, 0.002 s physics timestep).
+# Nominal PD gains for the G1 (35 kg, 0.002 s physics timestep).
+# PhysicsSimulator uses a conservative 0.5x Kp scale by default because full
+# nominal stiffness saturates the simple torque controller before clip-specific
+# MotionBricks motion begins to matter.
 # Kd sized for near-critical damping: Kd ≈ 2*sqrt(Kp * J_eff).
 # Effective link inertias (armature=0.01 + body segment) are ~0.1-1 kg·m²,
 # giving Kd_crit ≈ 6-20 for Kp=100-200. Values below keep a safety margin

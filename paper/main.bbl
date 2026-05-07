@@ -1,0 +1,52 @@
+\begin{thebibliography}{10}
+
+\bibitem{claw}
+Jianuo Cao, Yuxin Chen, and Masayoshi Tomizuka.
+\newblock Claw: Composable language-annotated whole-body motion generation, 2026.
+
+\bibitem{cobbe}
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman.
+\newblock Training verifiers to solve math word problems, 2021.
+
+\bibitem{humanml3d}
+Chuan Guo, Shihao Zou, Xinxin Zuo, Sen Wang, Wei Ji, Xingyu Li, and Li~Cheng.
+\newblock Generating diverse and natural 3d human motions from text.
+\newblock In {\em CVPR}, 2022.
+
+\bibitem{lightman}
+Hunter Lightman, Vineet Kosaraju, Yura Burda, Harrison Edwards, Bowen Baker, Teddy Lee, Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe.
+\newblock Let's verify step by step, 2023.
+
+\bibitem{phc}
+Zhengyi Luo, Jinkun Cao, Alexander Winkler, Kris Kitani, and Weipeng Xu.
+\newblock Perpetual humanoid control for real-time simulated avatars.
+\newblock In {\em ICCV}, 2023.
+
+\bibitem{deepmimic}
+Xue~Bin Peng, Pieter Abbeel, Sergey Levine, and Michiel van~de Panne.
+\newblock Deepmimic: Example-guided deep reinforcement learning of physics-based character skills.
+\newblock {\em ACM Transactions on Graphics}, 2018.
+
+\bibitem{amp}
+Xue~Bin Peng, Ze~Ma, Pieter Abbeel, Sergey Levine, and Angjoo Kanazawa.
+\newblock Amp: Adversarial motion priors for stylized physics-based character control.
+\newblock {\em ACM Transactions on Graphics}, 2021.
+
+\bibitem{snell}
+Charlie Snell, Jaehoon Lee, Kelvin Xu, and Aviral Kumar.
+\newblock Scaling llm test-time compute optimally improves diverse reasoning tasks, 2024.
+
+\bibitem{motionbricks}
+Tingwu Wang, Olivier Dionne, Michael De~Ruyter, David Minor, Davis Rempe, Kaifeng Zhao, Mathis Petrovich, Ye~Yuan, Chenran Li, Zhengyi Luo, Brian Robison, Xavier Blackwell, Bernardo Antoniazzi, Xue~Bin Peng, Yuke Zhu, and Simon Yuen.
+\newblock Motionbricks: Scalable real-time motions with modular latent generative model and smart primitives, 2026.
+
+\bibitem{roboforge}
+Xichen Yuan, Zhe Li, Bofan Lyu, Kuangji Zuo, Yanshuo Lu, Gen Li, and Jianfei Yang.
+\newblock Roboforge: Physically optimized text-guided whole-body locomotion for humanoids, 2026.
+
+\bibitem{t2mgpt}
+Jianrong Zhang, Yan Zhang, Xiaodong Cun, Yong Huang, Yong Zhang, Hongwei Zhao, Hongtao Lu, and Xi~Shen.
+\newblock T2m-gpt: Generating human motion from textual descriptions with discrete representations.
+\newblock In {\em CVPR}, 2023.
+
+\end{thebibliography}
