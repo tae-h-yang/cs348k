@@ -4,6 +4,7 @@ data/motionbricks/
 # Derived outputs
 results/
 handoff/
+artifact_bundle/
 
 # Logs
 MUJOCO_LOG.TXT
