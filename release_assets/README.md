@@ -9,6 +9,13 @@ release_assets/cs348k_artifacts_2026-05-08.tar.zst
 release_assets/cs348k_artifacts_2026-05-08.tar.zst.sha256
 ```
 
+Full local-results bundle:
+
+```text
+release_assets/cs348k_full_results_motionbricks_2026-05-08.tar.zst
+release_assets/cs348k_full_results_motionbricks_2026-05-08.tar.zst.sha256
+```
+
 Contents include:
 
 - final SONIC actual-qpos videos from `results/sonic_actual_sim_examples_pose_aligned/`
@@ -27,3 +34,13 @@ sha256sum -c release_assets/cs348k_artifacts_2026-05-08.tar.zst.sha256
 ```
 
 The extracted top-level folder is `artifact_bundle/`.
+
+Restore the full local results and MotionBricks data:
+
+```bash
+git lfs pull
+tar --zstd -xf release_assets/cs348k_full_results_motionbricks_2026-05-08.tar.zst
+sha256sum -c release_assets/cs348k_full_results_motionbricks_2026-05-08.tar.zst.sha256
+```
+
+The full bundle extracts `results/` and `data/motionbricks/`.
