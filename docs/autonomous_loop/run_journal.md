@@ -1,0 +1,31 @@
+# Run Journal
+
+## 2026-05-16
+
+- User rejected the old framing as too toy-like and asked for a broader,
+  research-level autonomous loop around high-quality humanoid robot motion data.
+- Subagent repo audit confirmed current MotionBricks generation is real but
+  exposed as discrete G1 modes, not arbitrary language prompts.
+- Subagent method audit recommended controller-in-the-loop curation as the
+  strongest next claim, with a MoVer-like MotionSpec verifier and rule-based
+  physics/contact gates.
+- Created this autonomous-loop documentation structure so future runs have a
+  durable place for decisions, blockers, evidence, and commands.
+- Added a generator for a 100 distinct-prompt humanoid robotics benchmark.
+- Generated `configs/humanoid_robotics_100_prompts.csv` and verified it has 100
+  rows with 100 unique prompt texts. Coverage: 16 locomotion, 12 terrain, 18
+  loco-manipulation, 12 manipulation stance, 12 balance, 10 communication, 10
+  low posture, and 10 workspace tasks.
+- Added `scripts/evaluate_motionspec.py`, a first MoVer-like predicate checker
+  over the existing executable 105-row MotionBricks suite.
+- Ran MotionSpec on the existing 210 K=1/K=8 rows. Selector comparison:
+  K=1 baseline score 0.686, K=8 score 0.736, MotionSpec-over-K1/K8 score 0.757.
+  MotionSpec selection also raises prompt proxy alignment from 0.583/0.568 to
+  0.620 and approximate SONIC survival from 2.005/2.054 s to 2.117 s.
+- Top failures are controller-related: 196/210 approximate SONIC rows fall and
+  185/210 fail the 3 s survival predicate. This confirms that controller
+  fidelity and controller-in-the-loop selection remain the main research risk.
+- Added `scripts/plot_motionspec_dashboard.py` and generated
+  `results/motionspec_selector_dashboard.png` plus
+  `results/motionspec_failure_counts.png` for quick visual review.
+- Ran `pytest -q`: 7 passed.
