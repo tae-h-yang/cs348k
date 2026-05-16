@@ -54,3 +54,8 @@
   visual-audit MP4s, and trained two width-512 neural critic seeds for 5000
   epochs each. Results are documented in
   `docs/autonomous_loop/long_run_results_2026-05-16.md`.
+- Added native SONIC release validation. The official stack works through the
+  native C++ deploy path plus MuJoCo qpos logging. With elastic-band release,
+  11/12 curated upright MotionBricks candidates survived full clip, while both
+  crawling negative controls failed. Results are documented in
+  `docs/sonic_native_release_validation_2026-05-16.md`.

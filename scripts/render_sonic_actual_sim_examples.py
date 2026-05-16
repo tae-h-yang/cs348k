@@ -34,7 +34,7 @@ CS348K_ROOT = Path(__file__).resolve().parents[1]
 GROOT_ROOT = Path("/home/rewardai/repos/GR00T-WholeBodyControl")
 DEPLOY_ROOT = GROOT_ROOT / "gear_sonic_deploy"
 SIM_PYTHON = GROOT_ROOT / ".venv_sim/bin/python"
-REFERENCE_ROOT = DEPLOY_ROOT / "reference/example"
+DEFAULT_REFERENCE_ROOT = DEPLOY_ROOT / "reference/example"
 
 MUJOCO_ORDER_JOINTS = 29
 ROBOT_QPOS = 7 + MUJOCO_ORDER_JOINTS
@@ -313,7 +313,7 @@ def render_qpos_video(
 
 
 def make_single_motion_reference(motion_name: str, tmp_root: Path) -> Path:
-    motion_src = REFERENCE_ROOT / motion_name
+    motion_src = DEFAULT_REFERENCE_ROOT / motion_name
     if not motion_src.exists():
         raise FileNotFoundError(f"Missing official reference motion: {motion_src}")
     single_ref_parent = tmp_root / "reference"
@@ -326,7 +326,55 @@ def make_single_motion_reference(motion_name: str, tmp_root: Path) -> Path:
     return single_ref_parent
 
 
-def run_one(job: MotionJob, out_dir: Path, args: argparse.Namespace) -> Path:
+def make_single_motion_reference_from_root(motion_name: str, reference_root: Path, tmp_root: Path) -> Path:
+    motion_src = reference_root / motion_name
+    if not motion_src.exists():
+        raise FileNotFoundError(f"Missing reference motion: {motion_src}")
+    single_ref_parent = tmp_root / "reference"
+    single_ref_parent.mkdir(parents=True, exist_ok=True)
+    dst = single_ref_parent / motion_name
+    try:
+        os.symlink(motion_src, dst, target_is_directory=True)
+    except OSError:
+        shutil.copytree(motion_src, dst)
+    return single_ref_parent
+
+
+def infer_reference_duration(motion_dir: Path, fps: float = 50.0) -> float:
+    joints = read_csv_array(motion_dir / "joint_pos.csv")
+    return max(1.0, (len(joints) - 1) / fps)
+
+
+def rollout_metrics(ref_qpos: np.ndarray, actual_qpos: np.ndarray, fps: float) -> dict[str, float | bool | int]:
+    n = min(len(ref_qpos), len(actual_qpos))
+    if n == 0:
+        return {
+            "frames": 0,
+            "duration_s": 0.0,
+            "fell": True,
+            "fall_time_s": 0.0,
+            "min_root_z": float("nan"),
+            "mean_joint_rmse": float("nan"),
+            "mean_root_xy_error": float("nan"),
+        }
+    ref = ref_qpos[:n]
+    actual = actual_qpos[:n]
+    root_z = actual[:, 2]
+    fall_idx = np.where(root_z < 0.55)[0]
+    fell = len(fall_idx) > 0
+    fall_frame = int(fall_idx[0]) if fell else n
+    return {
+        "frames": int(n),
+        "duration_s": float(n / fps),
+        "fell": bool(fell),
+        "fall_time_s": float(fall_frame / fps),
+        "min_root_z": float(np.min(root_z)),
+        "mean_joint_rmse": float(np.sqrt(np.mean((actual[:, 7:] - ref[:, 7:]) ** 2))),
+        "mean_root_xy_error": float(np.mean(np.linalg.norm(actual[:, :2] - ref[:, :2], axis=1))),
+    }
+
+
+def run_one(job: MotionJob, out_dir: Path, args: argparse.Namespace) -> tuple[Path, dict[str, object]]:
     job_dir = out_dir / job.name
     job_dir.mkdir(parents=True, exist_ok=True)
     sim_log = job_dir / "sim_qpos.csv"
@@ -338,7 +386,7 @@ def run_one(job: MotionJob, out_dir: Path, args: argparse.Namespace) -> Path:
         release_trigger.unlink()
 
     with tempfile.TemporaryDirectory(prefix=f"sonic_ref_{job.name}_") as tmp:
-        single_ref_parent = make_single_motion_reference(job.name, Path(tmp))
+        single_ref_parent = make_single_motion_reference_from_root(job.name, args.reference_root, Path(tmp))
         env = os.environ.copy()
         env["MUJOCO_GL"] = "egl"
 
@@ -445,7 +493,7 @@ def run_one(job: MotionJob, out_dir: Path, args: argparse.Namespace) -> Path:
 
     # Downsample simulator log to the render/reference rate. The official motion
     # CSVs are 40 Hz; the MuJoCo bridge usually logs faster.
-    ref_qpos = load_reference_qpos(REFERENCE_ROOT / job.name)
+    ref_qpos = load_reference_qpos(args.reference_root / job.name)
     ref_fps = (len(ref_qpos) - 1) / job.duration
     render_fps = args.fps if args.fps > 0 else ref_fps
     actual_idx = np.linspace(0, len(actual) - 1, num=min(len(ref_qpos), int(job.duration * render_fps)), dtype=np.int64)
@@ -464,14 +512,27 @@ def run_one(job: MotionJob, out_dir: Path, args: argparse.Namespace) -> Path:
         height=args.height,
         align_mode=args.align_mode,
     )
-    return out_path
+    metrics = rollout_metrics(ref_render, actual_render, render_fps)
+    metrics.update(
+        {
+            "motion": job.name,
+            "video": str(out_path),
+            "reference_root": str(args.reference_root),
+            "requested_duration_s": float(job.duration),
+            "render_fps": float(render_fps),
+            "actual_rows_captured": int(mask.sum()),
+        }
+    )
+    return out_path, metrics
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out_dir", type=Path, default=CS348K_ROOT / "results/sonic_actual_sim_examples")
+    parser.add_argument("--reference_root", type=Path, default=DEFAULT_REFERENCE_ROOT)
     parser.add_argument("--motions", nargs="*", default=[job.name for job in DEFAULT_JOBS])
     parser.add_argument("--duration", type=float, default=None, help="Override duration for all motions")
+    parser.add_argument("--summary_csv", type=Path, default=None)
     parser.add_argument("--drop_after", type=float, default=999999.0)
     parser.add_argument("--release_before_play", action="store_true")
     parser.add_argument("--release_settle", type=float, default=1.0)
@@ -486,19 +547,39 @@ def main() -> None:
     parser.add_argument("--align_mode", choices=["initial", "per_frame"], default="initial")
     args = parser.parse_args()
     args.out_dir = args.out_dir.resolve()
+    args.reference_root = args.reference_root.resolve()
+    if args.summary_csv is None:
+        args.summary_csv = args.out_dir / "native_tracking_summary.csv"
 
     default_durations = {job.name: job.duration for job in DEFAULT_JOBS}
-    jobs = [
-        MotionJob(name, args.duration if args.duration is not None else default_durations.get(name, 10.0))
-        for name in args.motions
-    ]
+    jobs = []
+    for name in args.motions:
+        if args.duration is not None:
+            duration = args.duration
+        elif name in default_durations and args.reference_root == DEFAULT_REFERENCE_ROOT.resolve():
+            duration = default_durations[name]
+        else:
+            duration = infer_reference_duration(args.reference_root / name)
+        jobs.append(MotionJob(name, duration))
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
     rendered: list[Path] = []
+    metrics_rows: list[dict[str, object]] = []
     for job in jobs:
         print(f"[sonic-qpos] running {job.name} for {job.duration:.1f}s")
-        rendered.append(run_one(job, args.out_dir, args))
-        print(f"[sonic-qpos] wrote {rendered[-1]}")
+        path, metrics = run_one(job, args.out_dir, args)
+        rendered.append(path)
+        metrics_rows.append(metrics)
+        print(
+            f"[sonic-qpos] wrote {path} | fell={metrics['fell']} "
+            f"fall={float(metrics['fall_time_s']):.2f}s rmse={float(metrics['mean_joint_rmse']):.3f}"
+        )
+
+    with args.summary_csv.open("w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(metrics_rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(metrics_rows)
+    print(f"Summary: {args.summary_csv}")
 
     print("Rendered actual-qpos videos:")
     for path in rendered:

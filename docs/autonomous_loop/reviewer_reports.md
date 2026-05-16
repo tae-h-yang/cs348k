@@ -85,3 +85,44 @@ Weak reject as a final paper, but notably stronger as an honest systems project.
 - Add human/VLM visual review over the generated audit videos.
 - Separate claims by category: locomotion/style candidate curation is plausible;
   crawling/low-posture is currently a failure case.
+
+## Review 003 - 2026-05-16 Native SONIC Release Check
+
+### Paper-Level Score
+
+Borderline as a scoped systems/evaluation project if the claim is narrowed to
+controller-in-the-loop curation for upright motions.
+
+### Evidence Reviewed
+
+- Native C++ SONIC deploy binary.
+- Official MuJoCo simulator qpos logs, not `g1_debug` fixed-root visualization.
+- Elastic-band release before reference playback.
+- Official references, representative MotionBricks references, and a curated
+  MotionBricks batch with crawling negative controls.
+
+### Positive Findings
+
+- SONIC setup is not fundamentally broken: official references execute through
+  the native stack, and `walking_quip_360_R_002__A428` survives the full run
+  after release.
+- MotionBricks-to-SONIC export is usable for upright references: 11/12 curated
+  upright candidates survived full clip with low joint RMSE.
+- Crawling failures are now confirmed by native controller evidence rather than
+  only heuristic inverse dynamics.
+
+### Negative Findings
+
+- The simple root-height fall threshold is not reliable for intentional squat
+  or low-posture references; video inspection remains required.
+- The result is category-limited. It does not show universal MotionBricks
+  tracking, arbitrary prompt generation, or policy fine-tuning.
+- One upright candidate failed quickly, so the selector still needs a native
+  controller acceptance gate.
+
+### Required Next Work
+
+- Present only the curated pass set as positive evidence.
+- Use crawling and the failed upright clip as negative controls.
+- Expand native-release evaluation to a larger selected pool if time permits.
+- Add visual-review labels to avoid overclaiming from scalar metrics.

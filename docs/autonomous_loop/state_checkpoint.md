@@ -96,12 +96,26 @@ Long-run snapshot:
 - Neural critic sweep completed two width-512 seeds: best rho 0.797 and 0.759.
 - Result: learned heuristic-risk imitation remains a negative/secondary path.
 
+Native SONIC release-validation snapshot:
+
+- Official/native deployment and MuJoCo logging work through
+  `scripts/render_sonic_actual_sim_examples.py`.
+- The old no-release native videos only validate deployment/visualization; they
+  do not validate free-standing physical tracking.
+- With `--release_before_play`, upright MotionBricks references can track:
+  11/12 curated upright candidates survived full clip in
+  `results/sonic_native_release_20260516_curated_batch/`.
+- Crawling remains a negative control: 0/2 crawling candidates survived in the
+  curated release batch.
+- Clean presentable pass videos are copied to
+  `results/sonic_native_release_20260516_curated_pass/`.
+
 ## Next Actions
 
 1. Investigate whether arbitrary-prompt generation can be accessed or whether
    the 100-prompt suite must be evaluated through another generator/control
    source.
-2. Improve controller validation: native SONIC reference conversion or another
-   trusted G1 tracker.
-3. Build a human/VLM visual-review rubric over the audit manifest.
-4. Use controller labels directly for selection/training.
+2. Turn the native SONIC release result into an explicit controller-in-loop
+   acceptance gate and rerun selection on a larger candidate pool.
+3. Build a human/VLM visual-review rubric over the native release videos.
+4. Keep low-posture/crawling as rejected or separate-controller categories.
