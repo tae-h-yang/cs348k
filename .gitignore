@@ -1,5 +1,6 @@
 # Generated motion data (run Colab notebook to regenerate)
 data/motionbricks/
+data/candidate_audit/
 
 # Derived outputs
 results/

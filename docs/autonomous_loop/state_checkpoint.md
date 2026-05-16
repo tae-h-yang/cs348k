@@ -89,6 +89,13 @@ Visual audit snapshot: `results/visual_audit_contact_sheet.png` makes the worst
 whole-body/crawling failures obvious. Several high-risk crawling clips collapse
 or lie on the ground despite numeric selector improvements elsewhere.
 
+Long-run snapshot:
+
+- 728 candidate clips over 91 identities were generated/scored.
+- 12 visual-audit MP4s were rendered under `results/videos/visual_audit/`.
+- Neural critic sweep completed two width-512 seeds: best rho 0.797 and 0.759.
+- Result: learned heuristic-risk imitation remains a negative/secondary path.
+
 ## Next Actions
 
 1. Investigate whether arbitrary-prompt generation can be accessed or whether
@@ -96,5 +103,5 @@ or lie on the ground despite numeric selector improvements elsewhere.
    source.
 2. Improve controller validation: native SONIC reference conversion or another
    trusted G1 tracker.
-3. Render video clips, not only contact sheets, for the selected audit manifest.
-4. Build a human/VLM visual-review rubric over the audit manifest.
+3. Build a human/VLM visual-review rubric over the audit manifest.
+4. Use controller labels directly for selection/training.

@@ -49,3 +49,8 @@
   audit artifacts, and a run summary.
 - Added `scripts/render_visual_audit_videos.py` so selected audit cases can be
   watched as MP4s, not only inspected as still-frame contact sheets.
+- Ran the 2026-05-16 long-run protocol for more than 6 hours. It expanded the
+  candidate audit to 728 candidates over 91 mode-seed identities, rendered 12
+  visual-audit MP4s, and trained two width-512 neural critic seeds for 5000
+  epochs each. Results are documented in
+  `docs/autonomous_loop/long_run_results_2026-05-16.md`.
