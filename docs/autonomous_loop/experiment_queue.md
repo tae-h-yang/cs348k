@@ -12,7 +12,8 @@
   SONIC oracle/selector where available.
 - [x] Render a small visual audit set with non-overlapping labels and risk
   overlays.
-- [ ] Render full videos for the visual audit manifest.
+- [x] Add full video renderer for the visual audit manifest.
+- [ ] Render full videos for the current visual audit manifest.
 - [ ] Improve native SONIC/reference conversion or replace with another trusted
   G1 tracker.
 - [ ] Run 4-8 hour long-run protocol and review the resulting videos/tables.
@@ -26,6 +27,7 @@ python scripts/build_candidate_evidence_table.py
 python scripts/plot_combined_selector.py
 python scripts/select_visual_audit_clips.py
 python scripts/render_visual_audit_contact_sheet.py
+MUJOCO_GL=egl python scripts/render_visual_audit_videos.py --limit 12
 bash scripts/longrun_motion_curation.sh
 python scripts/evaluate_prompt_alignment.py
 python scripts/evaluate_contact_quality.py

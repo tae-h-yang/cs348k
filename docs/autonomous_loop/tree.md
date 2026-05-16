@@ -31,6 +31,7 @@ scripts/
 ├── plot_combined_selector.py
 ├── select_visual_audit_clips.py
 ├── render_visual_audit_contact_sheet.py
+├── render_visual_audit_videos.py
 ├── longrun_motion_curation.sh
 └── evaluate_sonic_policy_mujoco.py
 
@@ -46,6 +47,7 @@ results/  (ignored, regenerated)
 ├── combined_selector_dashboard.png
 ├── visual_audit_manifest.csv
 ├── visual_audit_contact_sheet.png
+├── videos/visual_audit/*.mp4
 ├── longrun/latest/longrun.log
 ├── longrun/latest/run_summary.md
 ├── prompt_alignment.csv

@@ -37,7 +37,8 @@ The current best 4-8 hour job is:
 2. Train a larger clip critic on the expanded candidate table.
 3. Rebuild candidate evidence tables and selector plots.
 4. Regenerate the visual-audit manifest and contact sheet.
-5. Write a run summary with exact failures.
+5. Render audit videos for the visual-audit manifest.
+6. Write a run summary with exact failures.
 
 ## Commands
 
@@ -71,6 +72,5 @@ Stop before 8 hours only if:
 - `results/longrun/latest/longrun.log`
 - `results/longrun/latest/run_summary.md`
 - updated candidate/evaluator CSVs or a documented failure
-- at least one visual artifact: dashboard, contact sheet, or videos
+- visual artifacts: dashboard, contact sheet, and selected audit videos
 - updated `docs/autonomous_loop/run_journal.md`
-
