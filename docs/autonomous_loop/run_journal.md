@@ -59,3 +59,6 @@
   11/12 curated upright MotionBricks candidates survived full clip, while both
   crawling negative controls failed. Results are documented in
   `docs/sonic_native_release_validation_2026-05-16.md`.
+- Expanded the native-release check with four more strict-gate candidates,
+  giving 14/16 upright candidates surviving full clip and a clean 14-video pass
+  folder at `results/sonic_native_release_20260516_strict_pass/`.

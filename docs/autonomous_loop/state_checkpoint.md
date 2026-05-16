@@ -105,6 +105,9 @@ Native SONIC release-validation snapshot:
 - With `--release_before_play`, upright MotionBricks references can track:
   11/12 curated upright candidates survived full clip in
   `results/sonic_native_release_20260516_curated_batch/`.
+- The expanded strict-gate set reached 14/16 upright candidates surviving full
+  clip, mean joint RMSE 0.139 rad. The clean pass folder is
+  `results/sonic_native_release_20260516_strict_pass/`.
 - Crawling remains a negative control: 0/2 crawling candidates survived in the
   curated release batch.
 - Clean presentable pass videos are copied to

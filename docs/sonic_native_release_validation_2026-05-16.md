@@ -44,12 +44,25 @@ MUJOCO_GL=egl python scripts/render_sonic_actual_sim_examples.py \
   --align_mode initial --width 960 --height 540
 ```
 
+Incremental strict-gate check:
+
+```bash
+MUJOCO_GL=egl python scripts/render_sonic_actual_sim_examples.py \
+  --reference_root results/sonic_references_210_fixed \
+  --out_dir results/sonic_native_release_20260516_curated_incremental \
+  --motions injured_walk_seed6_K8 walk_happy_dance_seed4_K1 walk_scared_seed5_K8 walk_boxing_seed6_K8 \
+  --release_before_play --release_settle 1.0 \
+  --align_mode initial --width 960 --height 540
+```
+
 ## Outputs
 
 - `results/sonic_native_release_20260516_official/`
 - `results/sonic_native_release_20260516_motionbricks/`
 - `results/sonic_native_release_20260516_curated_batch/`
 - `results/sonic_native_release_20260516_curated_pass/`
+- `results/sonic_native_release_20260516_curated_incremental/`
+- `results/sonic_native_release_20260516_strict_pass/`
 
 Each folder contains MP4s, `native_tracking_summary.csv`, and a
 `contact_sheet.jpg`.
@@ -83,6 +96,15 @@ Curated MotionBricks release batch:
 | Crawling negative controls | 0/2 survived full clip |
 | Clean pass folder | 11 selected MP4s |
 
+Expanded strict-gate upright set:
+
+| Group | Result |
+|---|---|
+| Approx-screened upright candidates | 14/16 survived full clip |
+| Mean joint RMSE over 16 | 0.139 rad |
+| Native-release rejected candidates | `walk_seed3_K8`, `injured_walk_seed6_K8` |
+| Clean strict pass folder | 14 selected MP4s |
+
 ## Interpretation
 
 SONIC is working well enough to use as a native controller-in-the-loop
@@ -99,3 +121,8 @@ The strongest defensible project claim is now narrower and better:
 
 This is not yet "100% all humanoid motions." It is a credible controller-backed
 filtering result for the subset that SONIC can track.
+
+The recommended presentation folder is
+`results/sonic_native_release_20260516_strict_pass/`. The recommended negative
+controls are `hand_crawling_seed0_K1`, `elbow_crawling_seed3_K8`,
+`walk_seed3_K8`, and `injured_walk_seed6_K8`.

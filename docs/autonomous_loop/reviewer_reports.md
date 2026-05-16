@@ -107,7 +107,8 @@ controller-in-the-loop curation for upright motions.
   the native stack, and `walking_quip_360_R_002__A428` survives the full run
   after release.
 - MotionBricks-to-SONIC export is usable for upright references: 11/12 curated
-  upright candidates survived full clip with low joint RMSE.
+  upright candidates survived full clip with low joint RMSE, and an expanded
+  strict-gate set reached 14/16.
 - Crawling failures are now confirmed by native controller evidence rather than
   only heuristic inverse dynamics.
 
@@ -117,7 +118,8 @@ controller-in-the-loop curation for upright motions.
   or low-posture references; video inspection remains required.
 - The result is category-limited. It does not show universal MotionBricks
   tracking, arbitrary prompt generation, or policy fine-tuning.
-- One upright candidate failed quickly, so the selector still needs a native
+- Two upright candidates in the expanded strict-gate set failed quickly or began
+  below the root-height threshold, so the selector still needs a native
   controller acceptance gate.
 
 ### Required Next Work
