@@ -6,18 +6,25 @@
 - [x] Define 100 distinct humanoid robotics prompts.
 - [x] Implement MotionSpec predicate checker.
 - [x] Run MotionSpec on currently available K=1/K=8 clips.
-- [ ] Combine MotionSpec, contact, inverse dynamics, and SONIC metrics into one
+- [x] Combine MotionSpec, contact, inverse dynamics, and SONIC metrics into one
   candidate table.
-- [ ] Compare selectors: K=1, inverse-dynamics, contact-gated, MotionSpec+ID,
+- [x] Compare selectors: K=1, inverse-dynamics, contact-gated, MotionSpec+ID,
   SONIC oracle/selector where available.
-- [ ] Render a small visual audit set with non-overlapping labels and risk
+- [x] Render a small visual audit set with non-overlapping labels and risk
   overlays.
+- [ ] Render full videos for the visual audit manifest.
+- [ ] Improve native SONIC/reference conversion or replace with another trusted
+  G1 tracker.
 
 ## Candidate Commands
 
 ```bash
 python scripts/build_humanoid_robotics_prompt_suite.py
 python scripts/evaluate_motionspec.py
+python scripts/build_candidate_evidence_table.py
+python scripts/plot_combined_selector.py
+python scripts/select_visual_audit_clips.py
+python scripts/render_visual_audit_contact_sheet.py
 python scripts/evaluate_prompt_alignment.py
 python scripts/evaluate_contact_quality.py
 python scripts/analyze_sonic_policy_results.py

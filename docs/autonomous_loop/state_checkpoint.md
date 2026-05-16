@@ -31,6 +31,13 @@ Controller-in-the-loop curation of humanoid robot motion data:
   selector comparison.
 - `scripts/plot_motionspec_dashboard.py`: plots selector and failure-count
   summaries from MotionSpec outputs.
+- `scripts/build_candidate_evidence_table.py`: joins MotionSpec, contact,
+  inverse-dynamics, and approximate SONIC metrics into one candidate table.
+- `scripts/plot_combined_selector.py`: plots combined selector tradeoffs.
+- `scripts/select_visual_audit_clips.py`: selects inspectable best, worst, and
+  disagreement clips.
+- `scripts/render_visual_audit_contact_sheet.py`: renders start/middle/end frame
+  contact sheets for visual sanity checks.
 - `scripts/evaluate_sonic_policy_mujoco.py`: approximate SONIC policy bridge.
 
 ## Current Generated Outputs
@@ -43,6 +50,11 @@ Generated outputs live under ignored `results/`:
 - `results/motionspec_selector_dashboard.png`
 - `results/motionspec_failure_counts.csv`
 - `results/motionspec_failure_counts.png`
+- `results/candidate_evidence_table.csv`
+- `results/combined_selector_comparison.csv`
+- `results/combined_selector_dashboard.png`
+- `results/visual_audit_manifest.csv`
+- `results/visual_audit_contact_sheet.png`
 - `results/prompt_alignment.csv`
 - `results/contact_quality.csv`
 - `results/sonic_policy_mujoco_tracking_210_fixed.csv`
@@ -58,15 +70,31 @@ Existing 105 paired K=1/K=8 identities:
 | MotionSpec over K=1/K=8 | 0.757 | 0.620 | 0.250 | 2.117 s |
 | SONIC oracle over K=1/K=8 | 0.721 | 0.576 | 0.263 | 2.299 s |
 
+Combined selector snapshot:
+
+| Selector | Combined | Semantic | ID Risk | Approx. SONIC Survival |
+|---|---:|---:|---:|---:|
+| K=1 baseline | 0.577 | 0.650 | 35.32 | 2.005 s |
+| K=8 existing | 0.640 | 0.677 | 13.58 | 2.054 s |
+| MotionSpec selector | 0.643 | 0.706 | 17.74 | 2.114 s |
+| No-controller combined | 0.649 | 0.694 | 13.74 | 2.098 s |
+| Controller combined | 0.653 | 0.697 | 14.17 | 2.148 s |
+| SONIC oracle | 0.624 | 0.670 | 24.03 | 2.299 s |
+
 Interpretation: MotionSpec curation is promising for selecting between already
 generated candidates. Approximate SONIC survival is still short, so this is not
 yet a physically executable motion-generation result.
 
+Visual audit snapshot: `results/visual_audit_contact_sheet.png` makes the worst
+whole-body/crawling failures obvious. Several high-risk crawling clips collapse
+or lie on the ground despite numeric selector improvements elsewhere.
+
 ## Next Actions
 
-1. Make a single joined candidate table with one row per clip and all metrics.
-2. Add a selector that combines MotionSpec + contact gates + inverse dynamics.
-3. Render a small risk-audit set with readable overlays.
-4. Investigate whether arbitrary-prompt generation can be accessed or whether
+1. Investigate whether arbitrary-prompt generation can be accessed or whether
    the 100-prompt suite must be evaluated through another generator/control
    source.
+2. Improve controller validation: native SONIC reference conversion or another
+   trusted G1 tracker.
+3. Render video clips, not only contact sheets, for the selected audit manifest.
+4. Build a human/VLM visual-review rubric over the audit manifest.

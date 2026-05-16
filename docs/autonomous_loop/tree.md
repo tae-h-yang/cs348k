@@ -26,6 +26,10 @@ scripts/
 ├── evaluate_contact_quality.py
 ├── evaluate_motionspec.py
 ├── plot_motionspec_dashboard.py
+├── build_candidate_evidence_table.py
+├── plot_combined_selector.py
+├── select_visual_audit_clips.py
+├── render_visual_audit_contact_sheet.py
 └── evaluate_sonic_policy_mujoco.py
 
 results/  (ignored, regenerated)
@@ -35,6 +39,11 @@ results/  (ignored, regenerated)
 ├── motionspec_selector_dashboard.png
 ├── motionspec_failure_counts.csv
 ├── motionspec_failure_counts.png
+├── candidate_evidence_table.csv
+├── combined_selector_comparison.csv
+├── combined_selector_dashboard.png
+├── visual_audit_manifest.csv
+├── visual_audit_contact_sheet.png
 ├── prompt_alignment.csv
 ├── contact_quality.csv
 └── sonic_policy_mujoco_tracking_210_fixed.csv

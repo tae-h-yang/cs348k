@@ -29,3 +29,17 @@
   `results/motionspec_selector_dashboard.png` plus
   `results/motionspec_failure_counts.png` for quick visual review.
 - Ran `pytest -q`: 7 passed.
+- User correctly objected that this was not enough work or evidence. Added
+  `phd_student_role.md`, `reviewer_loop.md`, and `reviewer_reports.md` to force
+  stricter continuation criteria before any future "presentable" claim.
+- Added `scripts/build_candidate_evidence_table.py` and
+  `scripts/plot_combined_selector.py`. The combined selector improves over K=1
+  on combined score (0.577 -> 0.653), semantic score (0.650 -> 0.697), risk
+  (35.32 -> 14.17), and approximate SONIC survival (2.005 s -> 2.148 s), but
+  SONIC oracle still has the longest survival (2.299 s) while accepting worse
+  risk. This supports controller-in-the-loop selection as the next real method.
+- Added `scripts/select_visual_audit_clips.py` and
+  `scripts/render_visual_audit_contact_sheet.py`. Generated a 12-clip visual
+  audit sheet showing that low/crawling clips visibly collapse or lie on the
+  ground, validating the need for visual review and stricter contact/controller
+  gates.
