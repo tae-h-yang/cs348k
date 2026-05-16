@@ -10,6 +10,7 @@ docs/autonomous_loop/
 ├── evidence_log.md
 ├── experiment_queue.md
 ├── humanoid_robotics_100_prompts.md
+├── long_run_protocol.md
 ├── problem_definition.md
 ├── research_notes.md
 ├── run_journal.md
@@ -30,6 +31,7 @@ scripts/
 ├── plot_combined_selector.py
 ├── select_visual_audit_clips.py
 ├── render_visual_audit_contact_sheet.py
+├── longrun_motion_curation.sh
 └── evaluate_sonic_policy_mujoco.py
 
 results/  (ignored, regenerated)
@@ -44,6 +46,8 @@ results/  (ignored, regenerated)
 ├── combined_selector_dashboard.png
 ├── visual_audit_manifest.csv
 ├── visual_audit_contact_sheet.png
+├── longrun/latest/longrun.log
+├── longrun/latest/run_summary.md
 ├── prompt_alignment.csv
 ├── contact_quality.csv
 └── sonic_policy_mujoco_tracking_210_fixed.csv

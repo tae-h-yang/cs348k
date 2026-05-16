@@ -43,3 +43,7 @@
   audit sheet showing that low/crawling clips visibly collapse or lie on the
   ground, validating the need for visual review and stricter contact/controller
   gates.
+- Added `docs/autonomous_loop/long_run_protocol.md` and
+  `scripts/longrun_motion_curation.sh` to support 4-8 hour autonomous runs with
+  resumable candidate generation, heavier critic training, regenerated visual
+  audit artifacts, and a run summary.
