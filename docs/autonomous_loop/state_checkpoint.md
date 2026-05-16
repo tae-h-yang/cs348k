@@ -108,6 +108,10 @@ Native SONIC release-validation snapshot:
 - The expanded strict-gate set reached 14/16 upright candidates surviving full
   clip, mean joint RMSE 0.139 rad. The clean pass folder is
   `results/sonic_native_release_20260516_strict_pass/`.
+- The broad 100-attempt native-release run completed in
+  `results/sonic_native_release_overnight/20260516_085134/`: 84/100 overall
+  pass, 76/84 upright pass, 66/84 strict upright pass, 8/8 idle pass, and 0/8
+  crawling pass.
 - Crawling remains a negative control: 0/2 crawling candidates survived in the
   curated release batch.
 - Clean presentable pass videos are copied to

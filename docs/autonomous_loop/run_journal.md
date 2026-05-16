@@ -62,3 +62,8 @@
 - Expanded the native-release check with four more strict-gate candidates,
   giving 14/16 upright candidates surviving full clip and a clean 14-video pass
   folder at `results/sonic_native_release_20260516_strict_pass/`.
+- Ran a 100-attempt native SONIC release batch under an 8-hour cap. It completed
+  100/100 attempts in 1.20 hours: 84/100 overall pass, 76/84 upright pass,
+  66/84 strict upright pass after RMSE/root-drift gating, 8/8 idle pass, and
+  0/8 crawling pass. Results are documented in
+  `docs/sonic_native_overnight_100_2026-05-16.md`.

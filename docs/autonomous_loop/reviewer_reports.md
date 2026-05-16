@@ -128,3 +128,44 @@ controller-in-the-loop curation for upright motions.
 - Use crawling and the failed upright clip as negative controls.
 - Expand native-release evaluation to a larger selected pool if time permits.
 - Add visual-review labels to avoid overclaiming from scalar metrics.
+
+## Review 004 - 2026-05-16 100-Attempt Native SONIC Batch
+
+### Paper-Level Score
+
+Borderline accept for a scoped course project if framed as controller-in-the-loop
+motion-data curation, not as a new universal motion generator.
+
+### Evidence Reviewed
+
+- 100 native SONIC release attempts.
+- Elastic band disabled before playback.
+- 100 MP4s with reference and actual MuJoCo qpos.
+- Pass/fail contact sheets and per-mode summaries.
+
+### Positive Findings
+
+- The result is no longer cherry-picked: 84/100 total attempts passed.
+- Upright MotionBricks references are often executable under native SONIC:
+  76/84 passed the root-height survival check.
+- A stricter quality gate still leaves 66/84 upright references after adding
+  joint-RMSE and root-drift thresholds.
+- The negative controls are clean: 0/8 crawling references passed.
+
+### Negative Findings
+
+- Some upright variants still fail immediately, so inverse-dynamics or
+  approximate screening is not enough.
+- Visual review remains necessary because survival alone does not measure prompt
+  quality or root trajectory fidelity.
+- The benchmark still uses exposed MotionBricks modes rather than arbitrary
+  text-prompt generation.
+
+### Required Next Work
+
+- Present the method as native controller-in-loop curation with a strict
+  acceptance gate.
+- Use `strict_presentation_pass_videos/` for positive evidence and
+  `fail_videos/` for negative controls.
+- Avoid claims about crawling, manipulation, or arbitrary text prompts until
+  those are generated and validated with the same native-release protocol.
