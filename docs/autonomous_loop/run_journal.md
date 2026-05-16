@@ -67,3 +67,24 @@
   66/84 strict upright pass after RMSE/root-drift gating, 8/8 idle pass, and
   0/8 crawling pass. Results are documented in
   `docs/sonic_native_overnight_100_2026-05-16.md`.
+- Audited the new pivot with reviewer/explorer agents. Conclusion: true
+  MotionBricks generator fine-tuning is not scientifically meaningful with the
+  current local preview release; the defensible method is native
+  SONIC-controller-in-the-loop curation for fixed MotionBricks candidates.
+- Added `scripts/analyze_native_sonic_selector.py`. On the 100-run native batch,
+  K=1 strict pass is 20/25 paired identities, K=8 inverse-dynamics-selected
+  strict pass is 16/25, and native oracle upper bound is 22/25. This rules out
+  the old "K=8 improves execution" claim and reframes the project around
+  native acceptance gates plus calibrated pre-controller features.
+- Launched an all-210 native SONIC release run with a 12-hour cap:
+  `results/sonic_native_release_all210/20260516_123519/`.
+- Added `scripts/build_native_visual_audit_manifest.py` and generated a
+  34-row rubric manifest for the 100-run native batch, covering strict passes,
+  borderline passes, and failures.
+- Completed the all-210 native SONIC release run under
+  `results/sonic_native_release_all210/20260516_123519/`. Results: 164/210
+  overall survival, 152/168 upright survival, 136/168 strict upright pass, and
+  0/28 crawling survival. Across 105 paired identities, K=1 strict pass is
+  72/105, K=8 inverse-dynamics-selected strict pass is 74/105, and native oracle
+  upper bound is 85/105. Added
+  `docs/sonic_native_all210_2026-05-16.md`.

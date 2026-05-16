@@ -81,6 +81,11 @@ def build_broad100(reference_root: Path, tracking_csv: Path, limit: int) -> list
     return out
 
 
+def build_all(reference_root: Path, limit: int) -> list[str]:
+    names = sorted(p.name for p in reference_root.iterdir() if (p / "joint_pos.csv").exists())
+    return names[:limit]
+
+
 def read_one_summary(path: Path) -> dict[str, str]:
     with path.open(newline="") as f:
         rows = list(csv.DictReader(f))
@@ -137,6 +142,12 @@ def main() -> None:
     parser.add_argument("--tracking_csv", type=Path, default=DEFAULT_TRACKING_CSV)
     parser.add_argument("--out_dir", type=Path, default=ROOT / "results" / "sonic_native_release_overnight")
     parser.add_argument("--limit", type=int, default=100)
+    parser.add_argument(
+        "--strategy",
+        choices=("broad100", "all"),
+        default="broad100",
+        help="Candidate selection policy when --motions is not provided.",
+    )
     parser.add_argument("--max_hours", type=float, default=8.0)
     parser.add_argument("--motions", nargs="*", default=[])
     parser.add_argument("--width", type=int, default=960)
@@ -154,6 +165,8 @@ def main() -> None:
 
     if args.motions:
         candidates = args.motions[: args.limit]
+    elif args.strategy == "all":
+        candidates = build_all(args.reference_root, args.limit)
     else:
         candidates = build_broad100(args.reference_root, args.tracking_csv, args.limit)
 

@@ -33,6 +33,12 @@ Controller-in-the-loop curation of humanoid robot motion data:
   summaries from MotionSpec outputs.
 - `scripts/build_candidate_evidence_table.py`: joins MotionSpec, contact,
   inverse-dynamics, and approximate SONIC metrics into one candidate table.
+- `scripts/analyze_native_sonic_selector.py`: joins native SONIC release
+  outcomes with candidate evidence, compares selectors, and writes predictive
+  calibration tables.
+- `scripts/build_native_visual_audit_manifest.py`: selects native SONIC videos
+  for human/VLM review and writes rubric columns for stability/reference/style
+  judgments.
 - `scripts/plot_combined_selector.py`: plots combined selector tradeoffs.
 - `scripts/select_visual_audit_clips.py`: selects inspectable best, worst, and
   disagreement clips.
@@ -58,6 +64,11 @@ Generated outputs live under ignored `results/`:
 - `results/prompt_alignment.csv`
 - `results/contact_quality.csv`
 - `results/sonic_policy_mujoco_tracking_210_fixed.csv`
+- `results/sonic_native_release_overnight/20260516_085134/native_selector_analysis.md`
+- `results/sonic_native_release_overnight/20260516_085134/native_visual_audit_manifest.csv`
+- `results/sonic_native_release_all210/20260516_123519/analysis_summary.md`
+- `results/sonic_native_release_all210/20260516_123519/native_selector_analysis.md`
+- `results/sonic_native_release_all210/20260516_123519/native_visual_audit_manifest.csv`
 
 ## Latest Numeric Snapshot
 
@@ -112,17 +123,31 @@ Native SONIC release-validation snapshot:
   `results/sonic_native_release_overnight/20260516_085134/`: 84/100 overall
   pass, 76/84 upright pass, 66/84 strict upright pass, 8/8 idle pass, and 0/8
   crawling pass.
+- Native selector calibration on the same 100-run batch shows that K=8
+  inverse-dynamics screening is not the final method: across 25 paired K=1/K=8
+  identities, K=1 strict pass is 20/25, K=8 strict pass is 16/25, and the
+  native oracle upper bound is 22/25. Pre-controller metrics are moderately
+  predictive of native survival, but not enough to replace native SONIC rollout.
 - Crawling remains a negative control: 0/2 crawling candidates survived in the
   curated release batch.
 - Clean presentable pass videos are copied to
   `results/sonic_native_release_20260516_curated_pass/`.
+- All 210 exposed K=1/K=8 references have now been evaluated through native
+  SONIC under `results/sonic_native_release_all210/20260516_123519/`: 164/210
+  overall pass, 152/168 upright pass, 136/168 strict upright pass, and 0/28
+  crawling pass. Across all 105 paired identities, K=1 strict pass is 72/105,
+  K=8 inverse-dynamics-screened strict pass is 74/105, and the native oracle
+  upper bound is 85/105. Contact score is the strongest scalar predictor of
+  native survival in this batch (AUC 0.812).
 
 ## Next Actions
 
-1. Investigate whether arbitrary-prompt generation can be accessed or whether
-   the 100-prompt suite must be evaluated through another generator/control
-   source.
-2. Turn the native SONIC release result into an explicit controller-in-loop
-   acceptance gate and rerun selection on a larger candidate pool.
+1. Prepare a prospective held-out native-selection experiment where the selector
+   chooses before native rollout.
+2. Recalibrate thresholds for frame-0/root-height failures separately from
+   mid-trajectory falls.
 3. Build a human/VLM visual-review rubric over the native release videos.
 4. Keep low-posture/crawling as rejected or separate-controller categories.
+5. Investigate whether arbitrary-prompt generation can be accessed or whether
+   the 100-prompt suite must be evaluated through another generator/control
+   source.

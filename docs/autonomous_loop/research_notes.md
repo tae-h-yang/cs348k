@@ -48,9 +48,28 @@ humanoid control.
 
 Source: https://arxiv.org/abs/2511.07820
 
-Relevance: controller rollout is a stronger validation target than inverse
-dynamics. In this repo, the SONIC bridge is approximate, so it should be used as
-an experimental signal until native validation is available.
+Relevant details from the paper/project page:
+
+- It treats motion tracking as the scalable foundation task for humanoid
+  control.
+- It evaluates tracking with success/failure, pose error, velocity, and
+  acceleration metrics.
+- For one simulation comparison, imitation is unsuccessful if root height
+  deviates from the reference by more than 0.25 m; for a relaxed comparison,
+  failure is defined by falling/root-height deviation.
+- The tracking reward includes joint-limit and undesired-contact penalties.
+- The public docs say SONIC can be finetuned from the released checkpoint, but
+  the repo recommends large-scale Isaac Lab training and many GPUs.
+
+Sources:
+
+- https://nvlabs.github.io/GEAR-SONIC/
+- https://github.com/NVlabs/GR00T-WholeBodyControl
+
+Relevance: native controller rollout is the strongest validation target in this
+project. It does not prove arbitrary references are valid; it gives an execution
+acceptance gate. The old Python bridge is approximate, so native C++ SONIC plus
+official MuJoCo qpos logging is the evidence path to trust.
 
 ## AToM
 
@@ -71,4 +90,3 @@ Source: https://arxiv.org/abs/2603.17927
 
 Relevance: a stronger future version of this project should move from screening
 to training or preference tuning using controller/physics labels.
-
