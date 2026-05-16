@@ -44,12 +44,14 @@ The current best 4-8 hour job is:
 
 ```bash
 bash scripts/longrun_motion_curation.sh
+bash scripts/longrun_neural_critic_sweep.sh
 ```
 
 Monitor:
 
 ```bash
 tail -f results/longrun/latest/longrun.log
+tail -f results/long_jobs/neural_critic_sweep/latest/logs/seed_101.log
 ```
 
 ## VLM Policy

@@ -33,6 +33,7 @@ scripts/
 ├── render_visual_audit_contact_sheet.py
 ├── render_visual_audit_videos.py
 ├── longrun_motion_curation.sh
+├── longrun_neural_critic_sweep.sh
 └── evaluate_sonic_policy_mujoco.py
 
 results/  (ignored, regenerated)
@@ -50,6 +51,7 @@ results/  (ignored, regenerated)
 ├── videos/visual_audit/*.mp4
 ├── longrun/latest/longrun.log
 ├── longrun/latest/run_summary.md
+├── long_jobs/neural_critic_sweep/latest/sweep_summary.md
 ├── prompt_alignment.csv
 ├── contact_quality.csv
 └── sonic_policy_mujoco_tracking_210_fixed.csv

@@ -17,6 +17,8 @@
 - [ ] Improve native SONIC/reference conversion or replace with another trusted
   G1 tracker.
 - [ ] Run 4-8 hour long-run protocol and review the resulting videos/tables.
+- [ ] Run multi-seed neural critic sweep and decide whether learned critic is
+  credible or a negative result.
 
 ## Candidate Commands
 
@@ -29,6 +31,7 @@ python scripts/select_visual_audit_clips.py
 python scripts/render_visual_audit_contact_sheet.py
 MUJOCO_GL=egl python scripts/render_visual_audit_videos.py --limit 12
 bash scripts/longrun_motion_curation.sh
+bash scripts/longrun_neural_critic_sweep.sh
 python scripts/evaluate_prompt_alignment.py
 python scripts/evaluate_contact_quality.py
 python scripts/analyze_sonic_policy_results.py

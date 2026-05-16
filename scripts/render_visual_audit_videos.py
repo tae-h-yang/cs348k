@@ -21,8 +21,8 @@ DEFAULT_MANIFEST = ROOT / "results" / "visual_audit_manifest.csv"
 DEFAULT_OUT_DIR = ROOT / "results" / "videos" / "visual_audit"
 MODEL_XML = ROOT / "assets" / "g1" / "scene_29dof.xml"
 
-WIDTH = 720
-HEIGHT = 540
+WIDTH = 640
+HEIGHT = 480
 FPS = 30
 
 
