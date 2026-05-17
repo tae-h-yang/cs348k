@@ -31,6 +31,10 @@
   low-root references pass the strict native gate in 7/23 cases, while
   non-low-root references pass in 257/297 cases. That supports adding a
   root-height sanity gate before native rollout.
+- The low-root-gated prospective rerun completed 320/320 native SONIC rollouts.
+  The updated `gated_precontroller` selector reaches 73/80 strict pass versus
+  64/80 for deterministic baseline, with 14 rescues and 5 regressions. On the
+  known brittle `walk_stealth` mode, it improves strict pass from 3/8 to 7/8.
 
 ## Existing Weak Evidence
 
@@ -62,4 +66,5 @@
   modes used in the prospective native-selection run.
 - Rendered videos where metric risk corresponds to visible artifacts.
 - A clean artifact index so the user can review only current final evidence.
-- A rerun of prospective selection with the new root-height/upright gate active.
+- Human review of the new `results/current_validated/diagnostic_contact_videos/`
+  and paired comparison sheets before making presentation clips.

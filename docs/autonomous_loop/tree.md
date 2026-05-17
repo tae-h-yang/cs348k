@@ -1,21 +1,26 @@
 # Autonomous Loop Tree
 
 ```text
-docs/autonomous_loop/
-├── README.md
-├── benchmark_spec.md
-├── blockers.md
-├── candidate_methods.md
-├── evaluation_protocol.md
-├── evidence_log.md
-├── experiment_queue.md
-├── humanoid_robotics_100_prompts.md
-├── long_run_protocol.md
-├── problem_definition.md
+docs/
+├── prospective_lowroot_gate_2026-05-16.md
 ├── prospective_native_selection_2026-05-16.md
-├── research_notes.md
-├── run_journal.md
-└── state_checkpoint.md
+└── autonomous_loop/
+    ├── README.md
+    ├── benchmark_spec.md
+    ├── blockers.md
+    ├── candidate_methods.md
+    ├── evaluation_protocol.md
+    ├── evidence_log.md
+    ├── experiment_queue.md
+    ├── humanoid_robotics_100_prompts.md
+    ├── long_run_protocol.md
+    ├── phd_student_role.md
+    ├── problem_definition.md
+    ├── research_notes.md
+    ├── reviewer_loop.md
+    ├── reviewer_reports.md
+    ├── run_journal.md
+    └── state_checkpoint.md
 
 configs/
 ├── prompt_suite_105.csv
@@ -64,18 +69,34 @@ results/  (ignored, regenerated)
 ├── sonic_policy_mujoco_tracking_210_fixed.csv
 ├── sonic_native_release_all210/20260516_123519/
 ├── prospective_native_selection/20260516_170132/
-    ├── prospective_native_analysis.md
-    ├── prospective_native_selector_summary.csv
-    ├── sonic_reference_export_audit.csv
-    ├── sonic_reference_sanity_summary.csv
-    ├── sonic_reference_sanity_worst.csv
-    ├── native_release/analysis_summary.md
-    ├── native_release/diagnostic_contact_videos/*.mp4
-    ├── native_release/diagnostic_contact_sheet_first40.jpg
-    └── comparison_sheets/*.jpg
+│   ├── prospective_native_analysis.md
+│   ├── prospective_native_selector_summary.csv
+│   ├── sonic_reference_export_audit.csv
+│   ├── sonic_reference_sanity_summary.csv
+│   ├── sonic_reference_sanity_worst.csv
+│   ├── native_release/analysis_summary.md
+│   ├── native_release/diagnostic_contact_videos/*.mp4
+│   ├── native_release/diagnostic_contact_sheet_first40.jpg
+│   └── comparison_sheets/*.jpg
+├── prospective_native_selection/20260516_lowroot_gate/
+│   ├── prospective_native_analysis.md
+│   ├── prospective_native_selector_summary.csv
+│   ├── sonic_reference_export_audit.csv
+│   ├── sonic_reference_sanity_summary.csv
+│   ├── sonic_reference_sanity_worst.csv
+│   ├── native_release/analysis_summary.md
+│   ├── native_release/diagnostic_contact_videos/*.mp4
+│   ├── native_release/diagnostic_contact_sheet_first40.jpg
+│   ├── native_release/strict_presentation_pass_videos/*.mp4
+│   ├── native_release/fail_videos/*.mp4
+│   └── comparison_sheets/*.jpg
 └── current_validated/
     ├── README.md
+    ├── prospective_native_analysis.md -> latest selector analysis
+    ├── native_analysis_summary.md -> latest native SONIC analysis
+    ├── comparison_sheets -> latest paired sheets
     ├── diagnostic_contact_videos -> latest diagnostic videos
+    ├── diagnostic_contact_sheet_first40.jpg -> latest diagnostic sheet
     ├── strict_presentation_pass_videos -> latest strict passes
     └── fail_videos -> latest failures
 ```

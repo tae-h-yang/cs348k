@@ -117,3 +117,10 @@
   cases versus 257/297 for non-low-root references. Also patched
   `run_prospective_native_selection.py` so future prospective runs record and
   gate upright root-height sanity before exporting SONIC references.
+- Reran the prospective selection study with the low-root/upright gate under
+  `results/prospective_native_selection/20260516_lowroot_gate/`. Native SONIC
+  completed 320/320 rollouts. The gated selector reached 73/80 strict pass
+  versus 64/80 baseline, with 14 rescues and 5 regressions. The key
+  `walk_stealth` stress mode improved from 3/8 strict pass for baseline to 7/8
+  for the gated selector. Added
+  `docs/prospective_lowroot_gate_2026-05-16.md`.

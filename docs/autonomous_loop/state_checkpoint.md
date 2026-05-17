@@ -88,6 +88,10 @@ Generated outputs live under ignored `results/`:
 - `results/prospective_native_selection/20260516_170132/native_release/diagnostic_contact_videos/`
 - `results/prospective_native_selection/20260516_170132/sonic_reference_sanity_summary.csv`
 - `results/prospective_native_selection/20260516_170132/sonic_reference_sanity_worst.csv`
+- `results/prospective_native_selection/20260516_lowroot_gate/prospective_native_analysis.md`
+- `results/prospective_native_selection/20260516_lowroot_gate/native_release/analysis_summary.md`
+- `results/prospective_native_selection/20260516_lowroot_gate/comparison_sheets/`
+- `results/prospective_native_selection/20260516_lowroot_gate/native_release/diagnostic_contact_videos/`
 - `results/current_validated/` local pointer hub for the latest usable results
 
 ## Latest Numeric Snapshot
@@ -177,6 +181,13 @@ Native SONIC release-validation snapshot:
   shows 7/23 low-root references pass strictly versus 257/297 non-low-root
   references, confirming that low-root posture is a measurable execution
   quality issue.
+- Low-root-gated prospective rerun:
+  `results/prospective_native_selection/20260516_lowroot_gate/` completed
+  320/320 native SONIC rollouts. Baseline strict pass is 64/80,
+  `best_precontroller` is 62/80, `lowest_id_risk` is 65/80, and updated
+  `gated_precontroller` is 73/80. Against baseline, gated gives +9 strict
+  passes, 14 rescues, and 5 regressions. The stress-test `walk_stealth` mode
+  improves from 3/8 strict for baseline to 7/8 for gated.
 
 ## Next Actions
 
@@ -189,5 +200,5 @@ Native SONIC release-validation snapshot:
    source.
 5. If rerunning prospective native selection, use `--order interleaved` so
    partial results are not selector-block biased.
-6. Rerun the prospective selector comparison with the new low-root/upright gate
-   in `run_prospective_native_selection.py`.
+6. Human-review the new low-root-gated diagnostic videos and choose final
+   presentation clips from `results/current_validated/`.
