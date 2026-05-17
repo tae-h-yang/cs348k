@@ -39,6 +39,14 @@ Controller-in-the-loop curation of humanoid robot motion data:
 - `scripts/build_native_visual_audit_manifest.py`: selects native SONIC videos
   for human/VLM review and writes rubric columns for stability/reference/style
   judgments.
+- `scripts/run_prospective_native_selection.py`: generates held-out
+  MotionBricks candidate pools, scores candidates before controller rollout, and
+  exports selector-specific SONIC references.
+- `scripts/analyze_prospective_native_selection.py`: joins prospective selector
+  choices with native SONIC outcomes and reports paired rescue/regression
+  counts plus feature calibration.
+- `scripts/render_prospective_comparison_sheets.py`: renders paired baseline vs
+  selector contact sheets for rescues, regressions, and both-failed cases.
 - `scripts/plot_combined_selector.py`: plots combined selector tradeoffs.
 - `scripts/select_visual_audit_clips.py`: selects inspectable best, worst, and
   disagreement clips.
@@ -69,6 +77,8 @@ Generated outputs live under ignored `results/`:
 - `results/sonic_native_release_all210/20260516_123519/analysis_summary.md`
 - `results/sonic_native_release_all210/20260516_123519/native_selector_analysis.md`
 - `results/sonic_native_release_all210/20260516_123519/native_visual_audit_manifest.csv`
+- `results/prospective_native_selection/20260516_170132/prospective_native_analysis.md`
+- `results/prospective_native_selection/20260516_170132/comparison_sheets/`
 
 ## Latest Numeric Snapshot
 
@@ -139,15 +149,23 @@ Native SONIC release-validation snapshot:
   K=8 inverse-dynamics-screened strict pass is 74/105, and the native oracle
   upper bound is 85/105. Contact score is the strongest scalar predictor of
   native survival in this batch (AUC 0.812).
+- Prospective held-out native-selection run completed under
+  `results/prospective_native_selection/20260516_170132/`: 640 generated
+  candidates, 80 upright identities, and 320 native SONIC rollouts. Baseline
+  strict pass is 64/80, best pre-controller strict pass is 67/80, lowest
+  inverse-dynamics-risk strict pass is 66/80, and the native oracle over tested
+  selectors is 78/80. This supports cheap screening plus native acceptance
+  gating, not heuristic-only certification. Feature calibration on selected
+  rows is weak: best scalar AUC is contact artifact score at 0.561.
 
 ## Next Actions
 
-1. Prepare a prospective held-out native-selection experiment where the selector
-   chooses before native rollout.
-2. Recalibrate thresholds for frame-0/root-height failures separately from
+1. Recalibrate thresholds for frame-0/root-height failures separately from
    mid-trajectory falls.
-3. Build a human/VLM visual-review rubric over the native release videos.
-4. Keep low-posture/crawling as rejected or separate-controller categories.
-5. Investigate whether arbitrary-prompt generation can be accessed or whether
+2. Build a human/VLM visual-review rubric over the native release videos.
+3. Keep low-posture/crawling as rejected or separate-controller categories.
+4. Investigate whether arbitrary-prompt generation can be accessed or whether
    the 100-prompt suite must be evaluated through another generator/control
    source.
+5. If rerunning prospective native selection, use `--order interleaved` so
+   partial results are not selector-block biased.

@@ -86,6 +86,37 @@ def build_all(reference_root: Path, limit: int) -> list[str]:
     return names[:limit]
 
 
+def selector_prefix(name: str) -> str:
+    for prefix in ("baseline_k0", "lowest_id_risk", "best_precontroller", "gated_precontroller"):
+        if name.startswith(prefix + "_"):
+            return prefix
+    return ""
+
+
+def interleave_by_identity(names: list[str]) -> list[str]:
+    selectors = ("baseline_k0", "best_precontroller", "gated_precontroller", "lowest_id_risk")
+    grouped: dict[str, dict[str, str]] = {}
+    passthrough: list[str] = []
+    for name in names:
+        selector = selector_prefix(name)
+        if not selector:
+            passthrough.append(name)
+            continue
+        identity = name.removeprefix(selector + "_")
+        if "_cand" in identity:
+            identity = identity.rsplit("_cand", 1)[0]
+        grouped.setdefault(identity, {})[selector] = name
+
+    interleaved: list[str] = []
+    for identity in sorted(grouped):
+        for selector in selectors:
+            if selector in grouped[identity]:
+                interleaved.append(grouped[identity][selector])
+        for selector in sorted(set(grouped[identity]) - set(selectors)):
+            interleaved.append(grouped[identity][selector])
+    return interleaved + passthrough
+
+
 def read_one_summary(path: Path) -> dict[str, str]:
     with path.open(newline="") as f:
         rows = list(csv.DictReader(f))
@@ -148,6 +179,12 @@ def main() -> None:
         default="broad100",
         help="Candidate selection policy when --motions is not provided.",
     )
+    parser.add_argument(
+        "--order",
+        choices=("sorted", "interleaved"),
+        default="sorted",
+        help="Run order for the selected candidate list.",
+    )
     parser.add_argument("--max_hours", type=float, default=8.0)
     parser.add_argument("--motions", nargs="*", default=[])
     parser.add_argument("--width", type=int, default=960)
@@ -169,6 +206,9 @@ def main() -> None:
         candidates = build_all(args.reference_root, args.limit)
     else:
         candidates = build_broad100(args.reference_root, args.tracking_csv, args.limit)
+    if args.order == "interleaved":
+        candidates = interleave_by_identity(candidates)
+        candidates = candidates[: args.limit]
 
     candidate_csv = args.out_dir / "candidate_list.csv"
     write_rows(

@@ -88,3 +88,17 @@
   72/105, K=8 inverse-dynamics-selected strict pass is 74/105, and native oracle
   upper bound is 85/105. Added
   `docs/sonic_native_all210_2026-05-16.md`.
+- Added and ran a prospective held-out native-selection experiment:
+  `scripts/run_prospective_native_selection.py`,
+  `scripts/analyze_prospective_native_selection.py`, and
+  `scripts/render_prospective_comparison_sheets.py`.
+- The prospective run generated 640 candidates over 80 upright mode-seed
+  identities and evaluated 320 selector references through native SONIC. Final
+  strict pass rates: baseline 64/80, best pre-controller 67/80, gated duplicate
+  67/80, lowest inverse-dynamics-risk 66/80, and native oracle 78/80. Best
+  pre-controller gives 13 rescues and 10 regressions versus baseline.
+- Visual sheets were generated for paired rescues, regressions, and both-failed
+  identities under
+  `results/prospective_native_selection/20260516_170132/comparison_sheets/`.
+  The evidence supports a scoped claim: cheap screening helps modestly, but
+  native SONIC remains the acceptance gate.

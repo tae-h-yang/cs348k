@@ -14,6 +14,8 @@
   overlays.
 - [x] Add full video renderer for the visual audit manifest.
 - [ ] Render full videos for the current visual audit manifest.
+- [x] Run prospective held-out native SONIC selector comparison where candidate
+  choices are made before controller rollout.
 - [ ] Improve native SONIC/reference conversion or replace with another trusted
   G1 tracker.
 - [ ] Run 4-8 hour long-run protocol and review the resulting videos/tables.
@@ -35,6 +37,10 @@ bash scripts/longrun_neural_critic_sweep.sh
 python scripts/evaluate_prompt_alignment.py
 python scripts/evaluate_contact_quality.py
 python scripts/analyze_sonic_policy_results.py
+python scripts/run_prospective_native_selection.py --seed_start 7 --n_seeds 8 --K 8
+python scripts/run_sonic_native_release_batch.py --strategy all --order interleaved --limit 320
+python scripts/analyze_prospective_native_selection.py --prospective_dir <run> --batch_dir <run>/native_release
+python scripts/render_prospective_comparison_sheets.py --prospective_dir <run>
 pytest -q
 ```
 

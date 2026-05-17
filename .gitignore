@@ -1,6 +1,8 @@
 # Generated motion data (run Colab notebook to regenerate)
 data/motionbricks/
 data/candidate_audit/
+data/prospective_native_selection/
+data/prospective_native_selection_smoke/
 
 # Derived outputs
 results/

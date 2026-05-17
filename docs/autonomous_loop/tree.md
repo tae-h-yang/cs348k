@@ -12,6 +12,7 @@ docs/autonomous_loop/
 ├── humanoid_robotics_100_prompts.md
 ├── long_run_protocol.md
 ├── problem_definition.md
+├── prospective_native_selection_2026-05-16.md
 ├── research_notes.md
 ├── run_journal.md
 └── state_checkpoint.md
@@ -28,6 +29,9 @@ scripts/
 ├── evaluate_motionspec.py
 ├── plot_motionspec_dashboard.py
 ├── build_candidate_evidence_table.py
+├── run_prospective_native_selection.py
+├── analyze_prospective_native_selection.py
+├── render_prospective_comparison_sheets.py
 ├── plot_combined_selector.py
 ├── select_visual_audit_clips.py
 ├── render_visual_audit_contact_sheet.py
@@ -54,7 +58,13 @@ results/  (ignored, regenerated)
 ├── long_jobs/neural_critic_sweep/latest/sweep_summary.md
 ├── prompt_alignment.csv
 ├── contact_quality.csv
-└── sonic_policy_mujoco_tracking_210_fixed.csv
+├── sonic_policy_mujoco_tracking_210_fixed.csv
+├── sonic_native_release_all210/20260516_123519/
+└── prospective_native_selection/20260516_170132/
+    ├── prospective_native_analysis.md
+    ├── prospective_native_selector_summary.csv
+    ├── native_release/analysis_summary.md
+    └── comparison_sheets/*.jpg
 ```
 
 Update this file when adding a new durable loop artifact.
