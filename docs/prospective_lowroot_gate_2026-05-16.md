@@ -132,5 +132,15 @@ specific failure-mode fix. Low-root `walk_stealth` references were brittle, and
 an explicit upright root-height gate improved that mode from 3/8 strict pass to
 7/8 strict pass while improving the full held-out selector from 64/80 to 73/80.
 
+The native release protocol still has measurable stochastic/repeat-run
+variability. In this run, `best_precontroller` and `gated_precontroller` chose
+the same candidate for 74/80 identities, and duplicate native rollouts disagreed
+on strict pass for 20/74 same-candidate identities. The paired result is
+therefore best phrased as an observed native-validation improvement under the
+current protocol, not as proof that the low-root gate causally explains every
+individual rescue. A paired binary test over rescues/regressions is suggestive
+rather than overwhelming: 14 rescues versus 5 regressions is about McNemar
+two-sided p=0.064, one-sided p=0.032.
+
 Do not claim learned MotionBricks fine-tuning, arbitrary language-prompt
 generation, hardware safety, or guaranteed physical motion generation.

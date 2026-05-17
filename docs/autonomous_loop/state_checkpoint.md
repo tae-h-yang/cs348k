@@ -163,14 +163,15 @@ Native SONIC release-validation snapshot:
   K=8 inverse-dynamics-screened strict pass is 74/105, and the native oracle
   upper bound is 85/105. Contact score is the strongest scalar predictor of
   native survival in this batch (AUC 0.812).
-- Prospective held-out native-selection run completed under
+- Initial prospective held-out native-selection run completed under
   `results/prospective_native_selection/20260516_170132/`: 640 generated
   candidates, 80 upright identities, and 320 native SONIC rollouts. Baseline
   strict pass is 64/80, best pre-controller strict pass is 67/80, lowest
   inverse-dynamics-risk strict pass is 66/80, and the native oracle over tested
   selectors is 78/80. This supports cheap screening plus native acceptance
   gating, not heuristic-only certification. Feature calibration on selected
-  rows is weak: best scalar AUC is contact artifact score at 0.561.
+  rows is weak: best scalar AUC is contact artifact score at 0.561. This run is
+  superseded for final claims by the low-root-gated rerun below.
 - Follow-up audit: white/left in current SONIC actual-qpos videos is the
   exported MotionBricks reference and red/right is the actual SONIC-controlled
   robot. Export round-trip is exact to numerical precision across all 320
@@ -187,7 +188,10 @@ Native SONIC release-validation snapshot:
   `best_precontroller` is 62/80, `lowest_id_risk` is 65/80, and updated
   `gated_precontroller` is 73/80. Against baseline, gated gives +9 strict
   passes, 14 rescues, and 5 regressions. The stress-test `walk_stealth` mode
-  improves from 3/8 strict for baseline to 7/8 for gated.
+  improves from 3/8 strict for baseline to 7/8 for gated. There is still
+  measurable native repeat-run variability: best/gated selected the same
+  candidate for 74/80 identities, and duplicate rollouts disagreed on strict
+  pass for 20/74 of those same-candidate identities.
 
 ## Next Actions
 

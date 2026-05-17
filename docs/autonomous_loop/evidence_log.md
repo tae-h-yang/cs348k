@@ -17,11 +17,13 @@
   100-run batch shows an executable upright subset, but selector calibration
   also shows inverse-dynamics K=8 alone is not a reliable execution-improving
   method.
-- Prospective native selection on held-out seeds 7-14 shows a modest real
+- The initial prospective native selection on held-out seeds 7-14 showed a
+  modest real
   improvement from cheap screening: best pre-controller selection reaches 67/80
   strict pass versus 64/80 deterministic baseline, while the native oracle over
-  tested selectors reaches 78/80. This is evidence for controller acceptance
-  gating, not evidence that cheap metrics certify physical execution.
+  tested selectors reaches 78/80. This is superseded by the later low-root-gated
+  rerun below, but remains useful as the run that exposed the low-root failure
+  mode.
 - The SONIC reference export audit for the prospective run shows no broad
   conversion/joint-order bug: all 320 exported references round-trip back to the
   expected MuJoCo qpos with max absolute error `3.33e-16`. However, 23/320
@@ -49,13 +51,15 @@
 - True MotionBricks fine-tuning is not currently supported by the local preview
   release in a physically-aware, scientifically valid way; the available scripts
   train on synthetic tensors.
-- Prospective feature calibration is weak on the final 320 selected-rollout
-  table: contact artifact score is the best scalar at AUC 0.561 for native
+- Prospective feature calibration is weak on the final low-root-gated
+  320 selected-rollout table: contact artifact score is the best scalar at
+  about AUC 0.554 for native
   strict pass. This is not enough for heuristic-only selection claims.
-- `best_precontroller` and `gated_precontroller` selected identical candidates
-  in the prospective run; duplicate native rollouts disagreed on strict pass for
-  16/80 identities, so the release protocol has measurable repeat-run
-  variability.
+- `best_precontroller` and `gated_precontroller` selected the same candidate for
+  74/80 identities in the current low-root-gated run. Duplicate native rollouts
+  disagreed on strict pass for 20/74 same-candidate identities, so the release
+  protocol has measurable repeat-run variability. Claim the observed paired
+  improvement, not that the gate alone causally explains every rescue.
 - Older visual descriptions may have inverted the color convention. In
   `render_sonic_actual_sim_examples.py`, white/left is the MotionBricks/SONIC
   reference and red/right is the actual SONIC simulator qpos.
