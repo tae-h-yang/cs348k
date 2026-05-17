@@ -124,3 +124,9 @@
   `walk_stealth` stress mode improved from 3/8 strict pass for baseline to 7/8
   for the gated selector. Added
   `docs/prospective_lowroot_gate_2026-05-16.md`.
+- Refactored the 100-prompt target benchmark so it is no longer dominated by
+  walking styles. The regenerated `configs/humanoid_robotics_100_prompts.csv`
+  has 9 categories, only 21 prompts containing `walk`, 8 jump/hop/skip/bound
+  prompts, and 17 crawl/floor/roll/kneel/plank/handstand/cartwheel-style
+  prompts. Added regression tests for uniqueness, category coverage, diversity,
+  and label sanity.

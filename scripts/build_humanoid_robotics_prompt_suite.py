@@ -1,19 +1,23 @@
-"""Build a 100-prompt humanoid robotics motion benchmark.
+"""Build a diverse 100-prompt humanoid robotics motion benchmark.
 
-This suite is intentionally different from ``prompt_suite_105.csv``. The older
-file expands the currently exposed MotionBricks G1 modes by seed. This file
-defines 100 distinct robotics-facing motion intents that a mature generator
-should support, including locomotion, whole-body manipulation, safety gestures,
-balance recovery, object interaction, and constrained postures.
+This target suite is intentionally different from ``prompt_suite_105.csv``.
+The older file expands currently exposed MotionBricks G1 modes by seed; this
+file defines 100 distinct humanoid motion intents that a mature generator
+should support. The suite deliberately includes athletic, dance, low-posture,
+floor-contact, manipulation, balance, and safety motions so the project cannot
+hide behind many walking-style variants.
 
-The current public MotionBricks preview in this repo cannot execute all prompts
-directly; the ``current_motionbricks_support`` column makes that explicit.
+The current local MotionBricks preview cannot execute all prompts directly. The
+``current_motionbricks_support`` and ``motionbricks_mode_hint`` columns make
+that limitation explicit instead of pretending unsupported behaviors were
+validated.
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
+import re
 from pathlib import Path
 
 
@@ -22,146 +26,172 @@ OUT_CSV = ROOT / "configs" / "humanoid_robotics_100_prompts.csv"
 OUT_MD = ROOT / "docs" / "autonomous_loop" / "humanoid_robotics_100_prompts.md"
 
 
-PROMPTS: list[dict[str, str]] = [
-    # Locomotion basics, 16
-    {"category": "locomotion_basic", "subcategory": "forward", "prompt": "Walk forward at a comfortable indoor pace with symmetric arm swing.", "criteria": "forward progress; upright torso; alternating foot contacts"},
-    {"category": "locomotion_basic", "subcategory": "slow", "prompt": "Walk forward slowly as if approaching a fragile object.", "criteria": "low speed; small steps; stable trunk"},
-    {"category": "locomotion_basic", "subcategory": "fast", "prompt": "Power-walk forward with brisk but non-running steps.", "criteria": "faster progress; no flight phase; controlled arms"},
-    {"category": "locomotion_basic", "subcategory": "backward", "prompt": "Walk backward for several steps while keeping the chest facing forward.", "criteria": "negative forward displacement; upright torso; no spin"},
-    {"category": "locomotion_basic", "subcategory": "side_left", "prompt": "Sidestep to the robot's left with feet never crossing.", "criteria": "leftward displacement; side gait; feet separated"},
-    {"category": "locomotion_basic", "subcategory": "side_right", "prompt": "Sidestep to the robot's right with feet never crossing.", "criteria": "rightward displacement; side gait; feet separated"},
-    {"category": "locomotion_basic", "subcategory": "turn_left", "prompt": "Turn in place ninety degrees to the left without traveling forward.", "criteria": "yaw change left; low translation; stable feet"},
-    {"category": "locomotion_basic", "subcategory": "turn_right", "prompt": "Turn in place ninety degrees to the right without traveling forward.", "criteria": "yaw change right; low translation; stable feet"},
-    {"category": "locomotion_basic", "subcategory": "curve", "prompt": "Walk along a gentle left-curving path while looking in the travel direction.", "criteria": "curved trajectory; heading follows path; no abrupt spin"},
-    {"category": "locomotion_basic", "subcategory": "stop", "prompt": "Walk forward and come to a balanced stop with both feet planted.", "criteria": "initial progress; final low velocity; double support"},
-    {"category": "locomotion_basic", "subcategory": "start", "prompt": "Start from standing and smoothly accelerate into a walk.", "criteria": "standing first frames; gradual speed increase; no jump"},
-    {"category": "locomotion_basic", "subcategory": "pace_change", "prompt": "Walk forward, slow down for two steps, then resume normal speed.", "criteria": "speed modulation; forward progress; stable contacts"},
-    {"category": "locomotion_basic", "subcategory": "narrow", "prompt": "Walk forward on an imaginary narrow walkway with careful foot placement.", "criteria": "narrow step width; low sway; forward progress"},
-    {"category": "locomotion_basic", "subcategory": "wide", "prompt": "Walk forward with a deliberately wide stable stance.", "criteria": "wide step width; forward progress; upright torso"},
-    {"category": "locomotion_basic", "subcategory": "march", "prompt": "March in place with clear alternating knee lifts.", "criteria": "low translation; alternating high knees; regular rhythm"},
-    {"category": "locomotion_basic", "subcategory": "shuffle", "prompt": "Shuffle forward with short low steps and minimal arm swing.", "criteria": "short steps; low foot clearance; low arm motion"},
-    # Terrain and obstacle proxies, 12
-    {"category": "terrain_obstacle", "subcategory": "step_over_low", "prompt": "Step over a low obstacle with the right foot first.", "criteria": "right leg leads; elevated swing foot; no foot drag"},
-    {"category": "terrain_obstacle", "subcategory": "step_over_left", "prompt": "Step over a low obstacle with the left foot first.", "criteria": "left leg leads; elevated swing foot; no foot drag"},
-    {"category": "terrain_obstacle", "subcategory": "high_step", "prompt": "Walk forward using high steps as if crossing scattered cables.", "criteria": "repeated foot clearance; forward progress; no stumble"},
-    {"category": "terrain_obstacle", "subcategory": "duck_under", "prompt": "Crouch slightly while walking under a low bar, then return upright.", "criteria": "temporary lower root height; forward progress; recovery upright"},
-    {"category": "terrain_obstacle", "subcategory": "slope_up", "prompt": "Walk forward as if climbing a shallow ramp with a slight forward lean.", "criteria": "forward progress; mild torso pitch; stable cadence"},
-    {"category": "terrain_obstacle", "subcategory": "slope_down", "prompt": "Walk forward as if descending a shallow ramp with cautious short steps.", "criteria": "forward progress; lower speed; stable trunk"},
-    {"category": "terrain_obstacle", "subcategory": "uneven", "prompt": "Cross uneven ground with cautious alternating steps and visible balance corrections.", "criteria": "irregular step timing; upright recovery; no collapse"},
-    {"category": "terrain_obstacle", "subcategory": "threshold", "prompt": "Approach a doorway threshold, step across it, and continue walking.", "criteria": "approach; single higher step; resume gait"},
-    {"category": "terrain_obstacle", "subcategory": "avoid_left", "prompt": "Walk forward and swerve gently left around an obstacle.", "criteria": "forward then lateral path change; no abrupt jump"},
-    {"category": "terrain_obstacle", "subcategory": "avoid_right", "prompt": "Walk forward and swerve gently right around an obstacle.", "criteria": "forward then lateral path change; no abrupt jump"},
-    {"category": "terrain_obstacle", "subcategory": "step_down", "prompt": "Step down from a shallow platform and regain a normal walking rhythm.", "criteria": "one lowering event; stable landing; continue walking"},
-    {"category": "terrain_obstacle", "subcategory": "tight_turn", "prompt": "Walk forward, make a compact one-hundred-eighty-degree turn, and walk back.", "criteria": "forward progress; 180 yaw change; return path"},
-    # Loco-manipulation, 18
-    {"category": "loco_manipulation", "subcategory": "carry_front", "prompt": "Walk forward while carrying a small box with both hands at chest height.", "criteria": "hands held near chest; forward gait; reduced arm swing"},
-    {"category": "loco_manipulation", "subcategory": "carry_low", "prompt": "Walk forward while carrying a bag low in the right hand.", "criteria": "right hand low and steady; forward gait; asymmetric arm motion"},
-    {"category": "loco_manipulation", "subcategory": "tray", "prompt": "Walk carefully while keeping both hands level as if holding a tray.", "criteria": "hands level; smooth trunk; slow forward progress"},
-    {"category": "loco_manipulation", "subcategory": "push_cart", "prompt": "Walk forward with both hands extended as if pushing a cart.", "criteria": "hands forward; forward gait; stable torso"},
-    {"category": "loco_manipulation", "subcategory": "pull_cart", "prompt": "Walk backward with both hands forward as if pulling a cart toward the robot.", "criteria": "backward displacement; arms forward; no body spin"},
-    {"category": "loco_manipulation", "subcategory": "open_door", "prompt": "Step forward, reach with the right hand as if opening a door, then pass through.", "criteria": "right arm reach; step-through; forward continuation"},
-    {"category": "loco_manipulation", "subcategory": "close_door", "prompt": "Turn slightly, pull the right hand back as if closing a door, then stand balanced.", "criteria": "right arm pull; torso turn; final stable stance"},
-    {"category": "loco_manipulation", "subcategory": "reach_shelf", "prompt": "Walk to a shelf and reach upward with both hands.", "criteria": "forward approach; both hands lift; no jump"},
-    {"category": "loco_manipulation", "subcategory": "place_shelf", "prompt": "Raise both hands to place an object on a shoulder-height shelf.", "criteria": "hands lift then settle; upright stance; controlled elbows"},
-    {"category": "loco_manipulation", "subcategory": "pick_table", "prompt": "Step to a table and reach forward with both hands to pick up an object.", "criteria": "approach; forward arm extension; slight torso lean"},
-    {"category": "loco_manipulation", "subcategory": "press_button", "prompt": "Take one step forward and press a wall button with the right index-hand pose.", "criteria": "short approach; right hand forward; final pause"},
-    {"category": "loco_manipulation", "subcategory": "wipe_surface", "prompt": "Stand in place and wipe a horizontal surface with the right hand.", "criteria": "stationary feet; cyclic right arm sweep; stable trunk"},
-    {"category": "loco_manipulation", "subcategory": "two_hand_lift", "prompt": "Squat slightly and lift a light object with both hands using the legs.", "criteria": "knee bend; both hands low to higher; return upright"},
-    {"category": "loco_manipulation", "subcategory": "drag_object", "prompt": "Lean back slightly and pull an imaginary heavy object with both hands.", "criteria": "hands pull backward; backward lean; feet remain stable"},
-    {"category": "loco_manipulation", "subcategory": "scan_shelf", "prompt": "Walk slowly past a shelf while the head and torso scan left to right.", "criteria": "slow path; yaw oscillation; stable gait"},
-    {"category": "loco_manipulation", "subcategory": "handoff_receive", "prompt": "Step forward and present both hands to receive an object.", "criteria": "forward step; both hands open forward; final pause"},
-    {"category": "loco_manipulation", "subcategory": "handoff_give", "prompt": "Step forward and extend both hands as if handing over an object.", "criteria": "forward step; both hands extend; stable end pose"},
-    {"category": "loco_manipulation", "subcategory": "operate_panel", "prompt": "Stand at a control panel and alternate pressing buttons with left and right hands.", "criteria": "feet stationary; alternating hand reaches; low torso drift"},
-    # Inspection and manipulation stance, 12
-    {"category": "manipulation_stance", "subcategory": "bend_pick", "prompt": "Bend at the knees to pick up a small object from the floor with the right hand.", "criteria": "root lowers; right hand reaches floor; recover upright"},
-    {"category": "manipulation_stance", "subcategory": "left_pick", "prompt": "Bend at the knees to pick up a small object from the floor with the left hand.", "criteria": "root lowers; left hand reaches floor; recover upright"},
-    {"category": "manipulation_stance", "subcategory": "kneel_inspect", "prompt": "Lower into a kneeling inspection pose and look toward the floor.", "criteria": "root lowers substantially; one knee near floor; controlled posture"},
-    {"category": "manipulation_stance", "subcategory": "tool_use", "prompt": "Stand and make a two-handed twisting motion as if using a screwdriver.", "criteria": "feet stable; hands near midline; cyclic forearm twist"},
-    {"category": "manipulation_stance", "subcategory": "hammer", "prompt": "Stand with feet planted and swing the right hand downward as if using a hammer.", "criteria": "feet stable; right arm cyclic downstroke; torso controlled"},
-    {"category": "manipulation_stance", "subcategory": "inspect_under", "prompt": "Crouch and lean forward to inspect underneath a table.", "criteria": "lower posture; forward lean; no hand-floor collapse"},
-    {"category": "manipulation_stance", "subcategory": "reach_low", "prompt": "Reach down and forward with both hands without moving the feet.", "criteria": "stationary root; arms forward-low; stable knees"},
-    {"category": "manipulation_stance", "subcategory": "reach_high", "prompt": "Reach overhead with the right hand while the left hand balances at the side.", "criteria": "right hand high; left arm counterbalance; feet planted"},
-    {"category": "manipulation_stance", "subcategory": "sort_bins", "prompt": "Shift weight left and right while moving imaginary objects between waist-high bins.", "criteria": "lateral weight shifts; alternating hand motions; stable feet"},
-    {"category": "manipulation_stance", "subcategory": "scan_ground", "prompt": "Walk two small steps, crouch, and visually inspect the ground.", "criteria": "short progress; crouch; head or torso pitch"},
-    {"category": "manipulation_stance", "subcategory": "lean_reach", "prompt": "Lean to the left and reach the left hand outward while keeping both feet planted.", "criteria": "left hand reach; COM remains supported; no step"},
-    {"category": "manipulation_stance", "subcategory": "right_lean_reach", "prompt": "Lean to the right and reach the right hand outward while keeping both feet planted.", "criteria": "right hand reach; COM remains supported; no step"},
+Prompt = dict[str, str]
+
+
+def p(category: str, subcategory: str, prompt: str, criteria: str) -> Prompt:
+    return {
+        "category": category,
+        "subcategory": subcategory,
+        "prompt": prompt,
+        "criteria": criteria,
+    }
+
+
+PROMPTS: list[Prompt] = [
+    # Dynamic locomotion, hops, and transitions, 14
+    p("dynamic_locomotion", "forward_walk", "Walk forward at a comfortable indoor pace with symmetric arm swing.", "forward progress; upright torso; alternating foot contacts"),
+    p("dynamic_locomotion", "backward_walk", "Walk backward for several steps while keeping the chest facing forward.", "backward displacement; upright torso; no spin"),
+    p("dynamic_locomotion", "side_shuffle_left", "Shuffle two meters to the robot's left with quick lateral steps.", "leftward displacement; lateral cadence; feet remain under support"),
+    p("dynamic_locomotion", "side_shuffle_right", "Shuffle two meters to the robot's right with quick lateral steps.", "rightward displacement; lateral cadence; feet remain under support"),
+    p("dynamic_locomotion", "turn_in_place", "Turn in place one hundred eighty degrees and stop facing the opposite direction.", "large yaw change; low translation; balanced final stance"),
+    p("dynamic_locomotion", "march_high_knees", "March in place with clear alternating high-knee lifts.", "low translation; alternating knee lift; regular rhythm"),
+    p("dynamic_locomotion", "vertical_jump", "Perform a small vertical jump and land with both feet at the starting spot.", "flight phase; two-foot takeoff and landing; stable recovery"),
+    p("dynamic_locomotion", "broad_jump", "Jump forward a short distance and land in a balanced two-foot stance.", "forward aerial displacement; controlled landing; no hand contact"),
+    p("dynamic_locomotion", "one_leg_hop_right", "Hop in place three times on the right leg while the left knee stays lifted.", "right foot support; repeated flight; stable trunk"),
+    p("dynamic_locomotion", "one_leg_hop_left", "Hop in place three times on the left leg while the right knee stays lifted.", "left foot support; repeated flight; stable trunk"),
+    p("dynamic_locomotion", "skip_forward", "Skip forward with alternating light hops and relaxed arm swing.", "alternating hop gait; forward progress; rhythmic contacts"),
+    p("dynamic_locomotion", "lateral_bound", "Make two lateral bounding steps to the left and recover to a stable stance.", "leftward bounds; brief flight; controlled stop"),
+    p("dynamic_locomotion", "forward_lunge", "Step into a deep forward lunge and push back to standing.", "one long step; knee bend; return upright"),
+    p("dynamic_locomotion", "quick_stop", "Jog two short steps forward and stop abruptly without overbalancing.", "brief fast progress; rapid deceleration; stable double support"),
+
+    # Dance and expressive whole-body motion, 12
+    p("dance_expressive", "hip_hop_heel_toe", "Perform C-walk-inspired hip-hop heel-toe footwork in place without traveling far.", "alternating heel-toe pivots; low displacement; upright rhythm"),
+    p("dance_expressive", "moonwalk", "Perform a short moonwalk illusion moving backward while facing forward.", "backward glide; feet slide in pattern; torso faces forward"),
+    p("dance_expressive", "robot_dance", "Stand in place and perform stiff robot-dance arm and torso isolations.", "segmented arm motion; planted feet; low root drift"),
+    p("dance_expressive", "happy_dance", "Do an energetic happy dance with bouncing knees and wide arm gestures.", "rhythmic bounce; expressive arms; no collapse"),
+    p("dance_expressive", "boxing_shadow", "Shadowbox in place with alternating jabs and guarded footwork.", "alternating punches; small stance shifts; upright guard"),
+    p("dance_expressive", "tai_chi_sweep", "Perform a slow tai-chi-style weight shift with both arms sweeping outward.", "slow COM shift; smooth arms; planted or small steps"),
+    p("dance_expressive", "celebration_pump", "Pump both fists overhead twice while bouncing lightly on the feet.", "overhead arm motion; rhythmic knee bend; stable stance"),
+    p("dance_expressive", "disco_point", "Step side to side while pointing one hand diagonally upward in a disco pose.", "side steps; arm point alternates; torso remains upright"),
+    p("dance_expressive", "zombie_walk", "Walk forward in a zombie-like style with extended arms and stiff knees.", "forward progress; arms extended; stylized stiff gait"),
+    p("dance_expressive", "scared_sneak", "Sneak forward nervously with guarded arms and short cautious steps.", "short steps; guarded upper body; upright recovery"),
+    p("dance_expressive", "air_guitar", "Stand with a wide stance and mime playing an air guitar.", "wide support; cyclic arm motion; low root drift"),
+    p("dance_expressive", "salute_step", "Take one step forward and perform a crisp right-hand salute.", "single step; right hand to head; final pause"),
+
+    # Low posture and floor-contact behavior, 12
+    p("floor_low_posture", "hand_crawl", "Crawl forward using hands and feet in a controlled low posture.", "hand-floor contact; low root; forward progress"),
+    p("floor_low_posture", "elbow_crawl", "Crawl forward on elbows with the torso close to the ground.", "elbow/forearm contact; very low root; forward progress"),
+    p("floor_low_posture", "bear_crawl", "Bear crawl forward with hips high and hands and feet on the floor.", "hands and feet contact; alternating limbs; forward progress"),
+    p("floor_low_posture", "crab_walk", "Crab-walk backward with the chest facing upward and hands behind the body.", "hands and feet contact; backward progress; torso supine-ish"),
+    p("floor_low_posture", "duck_walk", "Move forward in a deep squat duck-walk for several steps.", "very low root; alternating feet; no hand-floor support"),
+    p("floor_low_posture", "kneel_to_stand", "Start kneeling and rise to a stable standing posture.", "root rises; knee contact early; final upright"),
+    p("floor_low_posture", "stand_to_kneel", "Lower from standing into a kneeling posture without falling.", "root lowers; controlled knee contact; final kneel"),
+    p("floor_low_posture", "pushup_pose", "Lower into a push-up plank and return to standing.", "hands contact floor; straight-body plank; root recovers"),
+    p("floor_low_posture", "sit_to_stand", "Rise from a seated floor posture into a stable stand.", "low initial root; hands or feet assist; final upright"),
+    p("floor_low_posture", "roll_to_kneel", "Perform a safe floor roll onto one side and recover to kneeling.", "side roll; low root; controlled kneel recovery"),
+    p("floor_low_posture", "low_side_step", "Perform two low sideways squat steps to the right.", "low root; rightward displacement; stable knees"),
+    p("floor_low_posture", "inspect_floor", "Drop into a low squat, reach toward the floor, and stand again.", "squat; hand near floor; full recovery"),
+
+    # Manipulation while standing, 12
+    p("manipulation_stance", "pick_floor_right", "Bend at the knees to pick up a small object from the floor with the right hand.", "root lowers; right hand reaches floor; recover upright"),
+    p("manipulation_stance", "pick_floor_left", "Bend at the knees to pick up a small object from the floor with the left hand.", "root lowers; left hand reaches floor; recover upright"),
+    p("manipulation_stance", "reach_overhead", "Reach overhead with both hands as if placing an item on a high shelf.", "both hands high; heels mostly planted; controlled torso"),
+    p("manipulation_stance", "reach_low_forward", "Reach down and forward with both hands without moving the feet.", "stationary feet; arms forward-low; stable knees"),
+    p("manipulation_stance", "wipe_table", "Stand in place and wipe a horizontal table surface with the right hand.", "feet stationary; cyclic right arm sweep; stable trunk"),
+    p("manipulation_stance", "hammer_down", "Stand with feet planted and swing the right hand downward as if using a hammer.", "right arm downstroke; torso controlled; feet stable"),
+    p("manipulation_stance", "screwdriver_twist", "Hold both hands near the chest and make a two-handed twisting screwdriver motion.", "hands near midline; cyclic twist; low root drift"),
+    p("manipulation_stance", "press_panel_sequence", "Press three imaginary buttons from left to right on a waist-high panel.", "three distinct reaches; left-to-right order; feet stable"),
+    p("manipulation_stance", "sort_bins", "Shift weight left and right while moving imaginary objects between waist-high bins.", "lateral weight shifts; alternating hand motions; stable feet"),
+    p("manipulation_stance", "lean_left_reach", "Lean left and reach the left hand outward while keeping both feet planted.", "left reach; COM remains supported; no step"),
+    p("manipulation_stance", "lean_right_reach", "Lean right and reach the right hand outward while keeping both feet planted.", "right reach; COM remains supported; no step"),
+    p("manipulation_stance", "scan_package", "Stand at a table and move both hands around a package as if scanning it.", "two-hand motions; hands near table height; stable feet"),
+
+    # Loco-manipulation and workspace tasks, 14
+    p("loco_manipulation", "carry_box_front", "Walk forward while carrying a small box with both hands at chest height.", "hands held near chest; forward gait; reduced arm swing"),
+    p("loco_manipulation", "carry_bag_right", "Walk forward while carrying a bag low in the right hand.", "right hand low and steady; forward gait; asymmetric arm motion"),
+    p("loco_manipulation", "tray_walk", "Walk carefully while keeping both hands level as if holding a tray.", "hands level; smooth trunk; slow forward progress"),
+    p("loco_manipulation", "push_cart", "Walk forward with both hands extended as if pushing a cart.", "hands forward; forward gait; stable torso"),
+    p("loco_manipulation", "pull_cart_backward", "Walk backward with both hands forward as if pulling a cart toward the robot.", "backward displacement; arms forward; no spin"),
+    p("loco_manipulation", "open_door", "Step forward, reach with the right hand as if opening a door, then pass through.", "right arm reach; step-through; forward continuation"),
+    p("loco_manipulation", "close_door", "Turn slightly, pull the right hand back as if closing a door, then stand balanced.", "right arm pull; torso turn; final stable stance"),
+    p("loco_manipulation", "handoff_give", "Step forward and extend both hands as if handing over an object.", "forward step; both hands extend; stable end pose"),
+    p("loco_manipulation", "handoff_receive", "Step forward and present both hands to receive an object.", "forward step; both hands open forward; final pause"),
+    p("loco_manipulation", "drag_object", "Lean back slightly and pull an imaginary heavy object with both hands.", "hands pull backward; backward lean; feet remain stable"),
+    p("loco_manipulation", "carry_turn", "Carry an imaginary box, turn left, and continue walking.", "hands held; left yaw; forward continuation"),
+    p("loco_manipulation", "inspect_machine", "Walk to a machine, lean in slightly, and inspect it with hands behind the back.", "approach; forward lean; arms held back"),
+    p("loco_manipulation", "open_drawer", "Step forward, reach low with both hands, and pull as if opening a drawer.", "approach; hands low-forward; backward pull"),
+    p("loco_manipulation", "loaded_recovery_step", "Walk forward carrying a load and take a corrective step after a small imbalance.", "arms held load; perturbation recovery; final upright"),
+
     # Balance and recovery, 12
-    {"category": "balance_recovery", "subcategory": "single_leg_right", "prompt": "Balance briefly on the right leg while lifting the left knee.", "criteria": "right support; left knee lift; no fall"},
-    {"category": "balance_recovery", "subcategory": "single_leg_left", "prompt": "Balance briefly on the left leg while lifting the right knee.", "criteria": "left support; right knee lift; no fall"},
-    {"category": "balance_recovery", "subcategory": "stumble_forward", "prompt": "Recover from a small forward stumble with one quick corrective step.", "criteria": "forward pitch; recovery step; final upright"},
-    {"category": "balance_recovery", "subcategory": "stumble_left", "prompt": "Recover from a small leftward stumble with a side step.", "criteria": "left lean; lateral recovery step; final upright"},
-    {"category": "balance_recovery", "subcategory": "stumble_right", "prompt": "Recover from a small rightward stumble with a side step.", "criteria": "right lean; lateral recovery step; final upright"},
-    {"category": "balance_recovery", "subcategory": "back_recovery", "prompt": "Recover from a slight backward lean by stepping back.", "criteria": "backward lean; backward step; final upright"},
-    {"category": "balance_recovery", "subcategory": "ankle_strategy", "prompt": "Stand still and sway gently forward and backward without stepping.", "criteria": "small root sway; feet planted; no large arm flail"},
-    {"category": "balance_recovery", "subcategory": "hip_strategy", "prompt": "Stand still and make a larger torso balance correction without moving the feet.", "criteria": "torso sway; feet planted; recover center"},
-    {"category": "balance_recovery", "subcategory": "catch_balance", "prompt": "Lift both arms outward to regain balance after a small perturbation.", "criteria": "arms abduct; trunk returns upright; feet stable or one step"},
-    {"category": "balance_recovery", "subcategory": "toe_stand", "prompt": "Rise briefly onto the toes and return to flat feet.", "criteria": "heel lift; low translation; controlled return"},
-    {"category": "balance_recovery", "subcategory": "heel_rock", "prompt": "Rock back briefly onto the heels and return to normal standing.", "criteria": "toe lift; low translation; controlled return"},
-    {"category": "balance_recovery", "subcategory": "loaded_balance", "prompt": "Stand while holding both hands forward as if carrying a load and resist a small sway.", "criteria": "arms forward; small COM sway; no stepping unless needed"},
-    # Communication and safety gestures, 10
-    {"category": "communication_safety", "subcategory": "wave", "prompt": "Stand still and wave the right hand at shoulder height.", "criteria": "feet stationary; right arm wave; upright torso"},
-    {"category": "communication_safety", "subcategory": "stop_signal", "prompt": "Take one step forward and raise the right palm in a stop signal.", "criteria": "one step; right hand forward-high; final pause"},
-    {"category": "communication_safety", "subcategory": "point_left", "prompt": "Point clearly to the robot's left with the left arm while standing.", "criteria": "left arm lateral extension; feet stable; low torso drift"},
-    {"category": "communication_safety", "subcategory": "point_right", "prompt": "Point clearly to the robot's right with the right arm while standing.", "criteria": "right arm lateral extension; feet stable; low torso drift"},
-    {"category": "communication_safety", "subcategory": "beckon", "prompt": "Stand and make a beckoning motion with the right hand.", "criteria": "right hand cyclic pull; feet stable; upright"},
-    {"category": "communication_safety", "subcategory": "yield", "prompt": "Step backward and raise both hands slightly as a yielding gesture.", "criteria": "backward step; hands lift; final stable stance"},
-    {"category": "communication_safety", "subcategory": "look_around", "prompt": "Stand still and look left, right, then forward.", "criteria": "yaw sequence; feet planted; no arm requirement"},
-    {"category": "communication_safety", "subcategory": "caution", "prompt": "Walk slowly while holding both hands slightly outward for caution.", "criteria": "slow forward gait; arms out; stable torso"},
-    {"category": "communication_safety", "subcategory": "direct_traffic", "prompt": "Stand and sweep the right arm sideways as if directing someone to pass.", "criteria": "right arm lateral sweep; feet stable; torso controlled"},
-    {"category": "communication_safety", "subcategory": "emergency_stop", "prompt": "Abruptly stop from a slow walk and plant both feet in a stable stance.", "criteria": "initial walking; rapid deceleration; double support"},
-    # Low posture and floor-adjacent, 10
-    {"category": "low_posture", "subcategory": "crouch_walk", "prompt": "Crouch-walk forward while keeping the torso below normal walking height.", "criteria": "lower root; forward progress; no hand-floor contact"},
-    {"category": "low_posture", "subcategory": "hands_crawl", "prompt": "Crawl forward using hands and feet in a controlled low posture.", "criteria": "hand-floor contact expected; low root; forward progress"},
-    {"category": "low_posture", "subcategory": "elbow_crawl", "prompt": "Crawl forward on elbows with the torso close to the ground.", "criteria": "elbow/forearm contact expected; low root; forward progress"},
-    {"category": "low_posture", "subcategory": "kneel_to_stand", "prompt": "Start kneeling and rise to a stable standing posture.", "criteria": "root rises; knee contact early; final upright"},
-    {"category": "low_posture", "subcategory": "stand_to_kneel", "prompt": "Lower from standing into a kneeling posture without falling.", "criteria": "root lowers; controlled knee contact; final stable kneel"},
-    {"category": "low_posture", "subcategory": "duck_walk", "prompt": "Move forward in a deep squat duck-walk for several steps.", "criteria": "very low root; forward progress; alternating feet"},
-    {"category": "low_posture", "subcategory": "recover_floor", "prompt": "Push up from a hands-and-knees pose into standing.", "criteria": "hands/knees contact early; root rises; final upright"},
-    {"category": "low_posture", "subcategory": "inspect_floor", "prompt": "Drop into a low squat, reach toward the floor, and stand again.", "criteria": "squat; hand near floor; full recovery"},
-    {"category": "low_posture", "subcategory": "crawl_turn", "prompt": "Crawl forward and turn slightly left while staying low.", "criteria": "low root; forward and yaw change; hand contact acceptable"},
-    {"category": "low_posture", "subcategory": "low_side_step", "prompt": "Perform two low sideways squat steps to the right.", "criteria": "low root; rightward displacement; stable knees"},
-    # Human-robot workspace tasks, 10
-    {"category": "workspace_task", "subcategory": "approach_human", "prompt": "Approach a person slowly and stop at a respectful distance.", "criteria": "slow forward progress; final stop; upright neutral arms"},
-    {"category": "workspace_task", "subcategory": "retreat_human", "prompt": "Step backward away from a person while keeping the torso facing them.", "criteria": "backward displacement; heading maintained; stable arms"},
-    {"category": "workspace_task", "subcategory": "carry_turn", "prompt": "Carry an imaginary box, turn left, and continue walking.", "criteria": "hands held; left yaw; forward continuation"},
-    {"category": "workspace_task", "subcategory": "inspect_machine", "prompt": "Walk to a machine, lean in slightly, and inspect it with hands behind the back.", "criteria": "approach; forward lean; arms held back"},
-    {"category": "workspace_task", "subcategory": "pick_place_bin", "prompt": "Pick an object from the left side and place it into a bin on the right.", "criteria": "left reach; right place; torso weight shift"},
-    {"category": "workspace_task", "subcategory": "open_drawer", "prompt": "Step forward, reach low with both hands, and pull as if opening a drawer.", "criteria": "approach; hands low-forward; backward pull"},
-    {"category": "workspace_task", "subcategory": "push_button_sequence", "prompt": "Press three imaginary buttons from left to right on a waist-high panel.", "criteria": "three distinct reaches; left-to-right order; feet stable"},
-    {"category": "workspace_task", "subcategory": "scan_package", "prompt": "Stand at a table and move both hands around a package as if scanning it.", "criteria": "feet stable; two-hand motions; hands near table height"},
-    {"category": "workspace_task", "subcategory": "pass_narrow_gap", "prompt": "Turn the shoulders slightly and walk through a narrow gap.", "criteria": "forward progress; torso yaw/shoulder narrowing; no collision proxy"},
-    {"category": "workspace_task", "subcategory": "recover_loaded_walk", "prompt": "Walk forward carrying a load and take a corrective step after a small imbalance.", "criteria": "arms held load; perturbation recovery; final upright"},
+    p("balance_recovery", "single_leg_balance_right", "Balance briefly on the right leg while lifting the left knee.", "right support; left knee lift; no fall"),
+    p("balance_recovery", "single_leg_balance_left", "Balance briefly on the left leg while lifting the right knee.", "left support; right knee lift; no fall"),
+    p("balance_recovery", "stumble_forward", "Recover from a small forward stumble with one quick corrective step.", "forward pitch; recovery step; final upright"),
+    p("balance_recovery", "stumble_left", "Recover from a small leftward stumble with a side step.", "left lean; lateral recovery step; final upright"),
+    p("balance_recovery", "stumble_right", "Recover from a small rightward stumble with a side step.", "right lean; lateral recovery step; final upright"),
+    p("balance_recovery", "backward_recovery", "Recover from a slight backward lean by stepping back.", "backward lean; backward step; final upright"),
+    p("balance_recovery", "ankle_sway", "Stand still and sway gently forward and backward without stepping.", "small root sway; feet planted; no arm flail"),
+    p("balance_recovery", "hip_strategy", "Stand still and make a larger torso balance correction without moving the feet.", "torso sway; feet planted; recover center"),
+    p("balance_recovery", "toe_stand", "Rise briefly onto the toes and return to flat feet.", "heel lift; low translation; controlled return"),
+    p("balance_recovery", "heel_rock", "Rock back briefly onto the heels and return to normal standing.", "toe lift; low translation; controlled return"),
+    p("balance_recovery", "catch_balance_arms", "Lift both arms outward to regain balance after a small perturbation.", "arms abduct; trunk returns upright; feet stable or one step"),
+    p("balance_recovery", "narrow_stance_hold", "Hold a narrow stance while making small balance corrections with the arms.", "narrow support; bounded sway; no stepping"),
+
+    # Safety, communication, and social cues, 8
+    p("communication_safety", "wave", "Stand still and wave the right hand at shoulder height.", "feet stationary; right arm wave; upright torso"),
+    p("communication_safety", "stop_signal", "Take one step forward and raise the right palm in a stop signal.", "one step; right hand forward-high; final pause"),
+    p("communication_safety", "point_left", "Point clearly to the robot's left with the left arm while standing.", "left arm lateral extension; feet stable; low torso drift"),
+    p("communication_safety", "point_right", "Point clearly to the robot's right with the right arm while standing.", "right arm lateral extension; feet stable; low torso drift"),
+    p("communication_safety", "beckon", "Stand and make a beckoning motion with the right hand.", "right hand cyclic pull; feet stable; upright"),
+    p("communication_safety", "yield_step", "Step backward and raise both hands slightly as a yielding gesture.", "backward step; hands lift; final stable stance"),
+    p("communication_safety", "look_around", "Stand still and look left, right, then forward.", "yaw sequence; feet planted; no arm requirement"),
+    p("communication_safety", "direct_traffic", "Stand and sweep the right arm sideways as if directing someone to pass.", "right arm lateral sweep; feet stable; torso controlled"),
+
+    # Obstacles and terrain proxies, 8
+    p("terrain_obstacle", "step_over_right", "Step over a low imaginary obstacle with the right foot first.", "right leg leads; elevated swing foot; no foot drag"),
+    p("terrain_obstacle", "step_over_left", "Step over a low imaginary obstacle with the left foot first.", "left leg leads; elevated swing foot; no foot drag"),
+    p("terrain_obstacle", "high_step_cables", "Walk forward using high steps as if crossing scattered cables.", "repeated foot clearance; forward progress; no stumble"),
+    p("terrain_obstacle", "duck_under_bar", "Crouch slightly while walking under a low bar, then return upright.", "temporary lower root; forward progress; recovery upright"),
+    p("terrain_obstacle", "slope_up", "Walk forward as if climbing a shallow ramp with a slight forward lean.", "forward progress; mild torso pitch; stable cadence"),
+    p("terrain_obstacle", "slope_down", "Walk forward as if descending a shallow ramp with cautious short steps.", "forward progress; lower speed; stable trunk"),
+    p("terrain_obstacle", "swerve_left", "Walk forward and swerve gently left around an obstacle.", "forward then lateral path change; no abrupt jump"),
+    p("terrain_obstacle", "tight_turn_back", "Walk forward, make a compact one-hundred-eighty-degree turn, and walk back.", "forward progress; 180 yaw change; return path"),
+
+    # Acrobatics and high-risk stress tests, 8
+    p("athletic_stress", "cartwheel_attempt", "Attempt a slow cartwheel-like lateral inversion and recover to standing.", "hands may contact floor; large roll; recover upright"),
+    p("athletic_stress", "forward_roll", "Perform a controlled forward roll and return to a kneeling posture.", "floor roll; low root; no uncontrolled fling"),
+    p("athletic_stress", "burpee", "Squat down, kick the legs back to a plank, return the feet under the body, and stand.", "squat; plank; stand recovery"),
+    p("athletic_stress", "sprawl_recovery", "Drop quickly into a sprawl and recover to an athletic stance.", "rapid root drop; hands/feet contact; stable recovery"),
+    p("athletic_stress", "split_squat_jump", "Perform a small split-squat jump switching which foot is forward.", "brief flight; leg switch; controlled landing"),
+    p("athletic_stress", "knee_slide", "Slide forward briefly on both knees and recover to kneeling.", "knee contact; forward slide; controlled stop"),
+    p("athletic_stress", "side_roll_recovery", "Roll sideways on the floor and recover to a crouched stance.", "side roll; low posture; crouch recovery"),
+    p("athletic_stress", "handstand_kickup", "Kick up toward a brief handstand and return the feet to the floor.", "hand contact; inverted posture; controlled return"),
 ]
 
 
-SUPPORTED_MODE_HINTS = {
-    "walk": {"locomotion_basic", "communication_safety", "whole_body_expressive", "workspace_task"},
-    "walk_left": {"locomotion_basic"},
-    "walk_right": {"locomotion_basic"},
-    "walk_zombie": {"whole_body_expressive"},
-    "walk_stealth": {"whole_body_expressive"},
-    "walk_boxing": {"whole_body_expressive"},
-    "hand_crawling": {"low_posture"},
-    "elbow_crawling": {"low_posture"},
-    "idle": {"communication_safety", "manipulation_stance", "balance_recovery"},
+SUPPORTED_STYLE_MODES = {
+    "boxing_shadow": "walk_boxing",
+    "happy_dance": "walk_happy_dance",
+    "zombie_walk": "walk_zombie",
+    "scared_sneak": "walk_scared",
+    "hip_hop_heel_toe": "walk_happy_dance",
 }
 
 
-def support_label(row: dict[str, str]) -> tuple[str, str]:
+def has_words(text: str, words: list[str]) -> bool:
+    return any(re.search(rf"\b{re.escape(word)}\b", text) for word in words)
+
+
+def support_label(row: Prompt) -> tuple[str, str]:
     category = row["category"]
-    prompt = row["prompt"].lower()
-    if category == "low_posture" and "crawl" in prompt:
+    subcategory = row["subcategory"]
+    text = row["prompt"].lower()
+    if subcategory in SUPPORTED_STYLE_MODES:
+        return "__YES_MODE_PROXY__", SUPPORTED_STYLE_MODES[subcategory]
+    if category == "floor_low_posture" and "crawl" in text:
         return "__PARTIAL__", "hand_crawling_or_elbow_crawling"
-    if category == "whole_body_expressive" and "zombie" in prompt:
-        return "__YES_MODE_PROXY__", "walk_zombie"
-    if category == "whole_body_expressive" and "boxing" in prompt:
-        return "__YES_MODE_PROXY__", "walk_boxing"
-    if category == "locomotion_basic" and "left" in prompt and "sidestep" in prompt:
+    if category == "dynamic_locomotion" and "left" in text and ("shuffle" in text or "lateral" in text):
         return "__YES_MODE_PROXY__", "walk_left"
-    if category == "locomotion_basic" and "right" in prompt and "sidestep" in prompt:
+    if category == "dynamic_locomotion" and "right" in text and "shuffle" in text:
         return "__YES_MODE_PROXY__", "walk_right"
-    if category in SUPPORTED_MODE_HINTS["walk"]:
-        return "__PARTIAL__", "walk_or_style_mode"
+    if category in {"dynamic_locomotion", "communication_safety"} and not any(
+        token in subcategory for token in ["jump", "hop", "skip", "bound", "lunge", "stop"]
+    ):
+        return "__PARTIAL__", "walk_or_idle_mode"
+    if category in {"manipulation_stance", "loco_manipulation", "terrain_obstacle"}:
+        return "__NO__", "requires_task_conditioned_generator_or_retargeter"
+    if category == "athletic_stress":
+        return "__NO__", "negative_control_high_risk"
     return "__NO__", "requires_new_generator_control"
 
 
@@ -187,54 +217,72 @@ def build_rows() -> list[dict[str, str]]:
             "hardness": infer_hardness(row, support),
             "current_motionbricks_support": support,
             "motionbricks_mode_hint": mode_hint,
-            "evaluation_notes": "Use MotionSpec predicates plus physics/contact/controller/visual audit.",
+            "evaluation_notes": evaluation_notes(row, support),
         })
     if len(rows) != 100:
         raise ValueError(f"Expected 100 prompts, got {len(rows)}")
     return rows
 
 
-def infer_contacts(row: dict[str, str]) -> str:
+def infer_contacts(row: Prompt) -> str:
     text = row["prompt"].lower()
-    if "crawl" in text:
-        return "feet;hands_or_elbows"
-    if "kneel" in text or "kneeling" in text:
-        return "feet;knee"
-    if "single" in row["subcategory"]:
+    if "one_leg" in row["subcategory"] or "single_leg" in row["subcategory"]:
         return "one_foot"
+    if has_words(text, ["crawl", "plank", "push-up", "pushup", "handstand", "cartwheel"]):
+        return "feet;hands_or_elbows"
+    if has_words(text, ["kneel", "kneeling", "knee", "knees"]):
+        return "feet;knee"
+    if "roll" in text:
+        return "body_floor"
     return "feet"
 
 
-def infer_root_motion(row: dict[str, str]) -> str:
+def infer_root_motion(row: Prompt) -> str:
     text = row["prompt"].lower()
-    if any(word in text for word in ["stand", "standing", "in place", "without moving the feet", "feet planted"]):
+    if has_words(text, ["jump", "hop", "bound", "flight"]):
+        return "aerial_or_impulsive"
+    if has_words(text, ["kneel", "crawl", "squat", "floor", "plank", "sprawl"]):
+        return "low_transition"
+    if any(phrase in text for phrase in ["in place", "without moving the feet", "feet planted"]) or has_words(text, ["stand", "standing"]):
         return "mostly_stationary"
-    if "backward" in text or "step backward" in text:
+    if has_words(text, ["backward", "moonwalk"]) or "step backward" in text:
         return "backward"
-    if "left" in text and ("sidestep" in text or "swerve" in text):
+    if "left" in text and has_words(text, ["shuffle", "swerve", "lateral", "lean"]):
         return "leftward"
-    if "right" in text and ("sidestep" in text or "swerve" in text):
+    if "right" in text and has_words(text, ["shuffle", "swerve", "lateral", "lean"]):
         return "rightward"
-    if "turn" in text:
-        return "turning"
+    if has_words(text, ["turn", "cartwheel", "roll"]):
+        return "turning_or_floor_transition"
     return "forward_or_task_dependent"
 
 
-def infer_arm_role(row: dict[str, str]) -> str:
+def infer_arm_role(row: Prompt) -> str:
     text = row["prompt"].lower()
-    if any(word in text for word in ["carry", "hands", "reach", "press", "push", "pull", "wipe", "point", "wave", "button", "object", "box", "tray"]):
+    if has_words(text, ["carry", "hands", "reach", "press", "push", "pull", "wipe", "point", "wave", "button", "object", "box", "tray", "panel", "table"]):
         return "task_constrained"
-    if any(word in text for word in ["arm", "punch", "zombie", "dance", "celebration"]):
+    if has_words(text, ["dance", "boxing", "jab", "zombie", "celebration", "guitar", "disco", "salute"]):
         return "expressive"
+    if has_words(text, ["cartwheel", "handstand", "roll", "plank"]):
+        return "support_or_recovery"
     return "natural_or_unspecified"
 
 
-def infer_hardness(row: dict[str, str], support: str) -> str:
+def infer_hardness(row: Prompt, support: str) -> str:
+    if row["category"] == "athletic_stress":
+        return "extreme_negative_control"
     if support == "__NO__":
         return "high"
-    if row["category"] in {"low_posture", "terrain_obstacle", "loco_manipulation", "workspace_task"}:
+    if row["category"] in {"floor_low_posture", "dynamic_locomotion", "terrain_obstacle", "loco_manipulation"}:
         return "medium_high"
     return "medium"
+
+
+def evaluation_notes(row: Prompt, support: str) -> str:
+    if row["category"] == "athletic_stress":
+        return "Stress/negative-control prompt: evaluate as unsupported unless a controller can execute it without unsafe impacts."
+    if support == "__NO__":
+        return "Target prompt for future methods; current MotionBricks preview needs task-conditioned generation or retargeting."
+    return "Use MotionSpec predicates plus physics/contact/controller/visual audit."
 
 
 def write_csv(path: Path, rows: list[dict[str, str]]) -> None:
@@ -257,9 +305,16 @@ def write_md(path: Path, rows: list[dict[str, str]]) -> None:
         "# Humanoid Robotics 100-Prompt Benchmark",
         "",
         "This is the target benchmark for the pivoted project. It contains 100",
-        "distinct humanoid robotics motion intents, not seed duplicates. It is a",
-        "specification for generation and evaluation; the current local MotionBricks",
-        "preview only supports a subset through discrete G1 modes.",
+        "distinct humanoid robotics motion intents, not seed duplicates. The suite",
+        "was refactored to avoid a walking-only benchmark: it now includes jumps,",
+        "one-leg hops, hip-hop-style footwork, crawling, floor transitions,",
+        "manipulation, balance recovery, obstacle proxies, and high-risk athletic",
+        "negative controls.",
+        "",
+        "The current local MotionBricks preview only supports a subset through",
+        "discrete G1 modes. Unsupported rows are still useful: they define the",
+        "target behavior space for evaluating future prompt steering, retargeting,",
+        "or learned physically-aware generation.",
         "",
         "## Category Counts",
         "",
@@ -273,21 +328,21 @@ def write_md(path: Path, rows: list[dict[str, str]]) -> None:
         "",
         "## Required Evaluation Layers",
         "",
-        "- MotionSpec predicates: prompt-derived checks for direction, speed, posture, arm role, contacts, and event order.",
+        "- Prompt/task checks: direction, speed, posture, contacts, arm role, and event order from `success_criteria`.",
         "- Kinematic checks: finite qpos, joint limits, root height, foot skate, self-contact, non-foot floor contact.",
-        "- Dynamics checks: inverse dynamics torque demand, unactuated root wrench, velocity/acceleration/jerk.",
+        "- Dynamics checks: inverse dynamics torque demand, unactuated root wrench, velocity, acceleration, and jerk.",
         "- Controller checks: SONIC or another learned G1 tracker for survival time, tracking RMSE, falls, and effort.",
-        "- Visual audit: rendered clips or contact sheets reviewed for prompt match and obvious artifacts.",
+        "- Visual audit: rendered clips/contact sheets for semantic match and obvious artifacts.",
         "",
-        "## First 20 Prompts",
+        "## Full Prompt List",
         "",
-        "| ID | Category | Prompt | Support |",
-        "|---|---|---|---|",
+        "| ID | Category | Subcategory | Prompt | Support |",
+        "|---|---|---|---|---|",
     ])
-    for row in rows[:20]:
+    for row in rows:
         lines.append(
-            f"| `{row['prompt_id']}` | `{row['category']}` | {row['prompt_text']} | "
-            f"`{row['current_motionbricks_support']}` |"
+            f"| `{row['prompt_id']}` | `{row['category']}` | `{row['subcategory']}` | "
+            f"{row['prompt_text']} | `{row['current_motionbricks_support']}` |"
         )
     lines.append("")
     path.write_text("\n".join(lines))

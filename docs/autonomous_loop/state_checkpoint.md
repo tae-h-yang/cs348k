@@ -1,6 +1,6 @@
 # State Checkpoint
 
-Last updated: 2026-05-16.
+Last updated: 2026-05-17.
 
 ## Current Project Spine
 
@@ -18,7 +18,10 @@ Controller-in-the-loop curation of humanoid robot motion data:
 - `configs/prompt_suite_105.csv`: executable local suite, 15 MotionBricks modes
   x 7 seeds.
 - `configs/humanoid_robotics_100_prompts.csv`: target benchmark, 100 distinct
-  humanoid robotics prompts.
+  humanoid robotics prompts across dynamic locomotion, dance/expressive,
+  floor/low-posture, manipulation, loco-manipulation, balance, safety,
+  terrain, and athletic stress-test categories. This is no longer a walking
+  style suite.
 
 ## Current Tracked Scripts
 

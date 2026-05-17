@@ -16,8 +16,13 @@
 `configs/humanoid_robotics_100_prompts.csv`
 
 - 100 distinct humanoid robotics motion intents.
-- Covers locomotion, terrain proxies, loco-manipulation, manipulation stance,
-  balance recovery, communication/safety, low posture, and workspace tasks.
+- Covers dynamic locomotion, jumps/hops, hip-hop-style footwork and other
+  expressive motions, floor/crawling motions, loco-manipulation, manipulation
+  stance, balance recovery, communication/safety, terrain proxies, and
+  high-risk athletic stress tests.
+- Current composition: only 21 prompts contain the word `walk`; at least 8
+  contain jump/hop/skip/bound motions and at least 17 contain crawl/floor/roll/
+  kneel/plank/handstand/cartwheel-style floor transitions.
 - Includes success criteria, expected contacts, root motion, arm role, hardness,
   and current MotionBricks support labels.
 - Use for problem definition, future generator testing, and reviewer-facing
@@ -60,4 +65,3 @@ For every executable prompt identity, compare:
 
 Each selected clip must retain the prompt text, candidate ID, metrics, and
 failed predicates.
-
