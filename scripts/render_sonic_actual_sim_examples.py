@@ -245,17 +245,53 @@ def put_text(frame: np.ndarray, lines: list[str]) -> np.ndarray:
     cv2.rectangle(overlay, (0, 0), (out.shape[1], box_h), (18, 18, 18), -1)
     out = cv2.addWeighted(overlay, 0.68, out, 0.32, 0)
     for i, line in enumerate(lines):
+        max_width = max(80, out.shape[1] - 2 * pad)
+        font_scale = 0.56
+        thickness = 2
+        text_width = cv2.getTextSize(line, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)[0][0]
+        if text_width > max_width:
+            font_scale = max(0.36, font_scale * max_width / text_width)
         cv2.putText(
             out,
             line,
             (18, pad + 21 + i * line_h),
             cv2.FONT_HERSHEY_SIMPLEX,
-            0.56,
+            font_scale,
             (245, 245, 245),
-            2,
+            thickness,
             cv2.LINE_AA,
         )
     return out
+
+
+def body_prefix_for_geom(model: mujoco.MjModel, geom_id: int) -> str:
+    body_id = int(model.geom_bodyid[geom_id])
+    body_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, body_id) or ""
+    if body_name.startswith("ref_"):
+        return "ref"
+    if body_name.startswith("actual_"):
+        return "actual"
+    return ""
+
+
+def add_contact_markers(model: mujoco.MjModel, data: mujoco.MjData, renderer: mujoco.Renderer) -> None:
+    for i in range(data.ncon):
+        contact = data.contact[i]
+        prefix = body_prefix_for_geom(model, int(contact.geom1)) or body_prefix_for_geom(model, int(contact.geom2))
+        if not prefix:
+            continue
+        if renderer.scene.ngeom >= renderer.scene.maxgeom:
+            break
+        rgba = np.array([0.1, 0.95, 0.25, 1.0]) if prefix == "ref" else np.array([1.0, 0.85, 0.05, 1.0])
+        mujoco.mjv_initGeom(
+            renderer.scene.geoms[renderer.scene.ngeom],
+            mujoco.mjtGeom.mjGEOM_SPHERE,
+            np.array([0.055, 0.055, 0.055], dtype=np.float64),
+            np.asarray(contact.pos, dtype=np.float64),
+            np.eye(3).reshape(-1),
+            rgba,
+        )
+        renderer.scene.ngeom += 1
 
 
 def render_qpos_video(
@@ -268,6 +304,8 @@ def render_qpos_video(
     width: int,
     height: int,
     align_mode: str,
+    contact_markers: bool = False,
+    camera_track: bool = False,
 ) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     n_frames = min(len(ref_qpos), len(actual_qpos))
@@ -294,8 +332,29 @@ def render_qpos_video(
         for i in range(n_frames):
             data.qpos[:ROBOT_QPOS] = ref_qpos[i]
             data.qpos[ROBOT_QPOS : 2 * ROBOT_QPOS] = actual_qpos[i]
-            mujoco.mj_kinematics(model, data)
+            contacts_available = False
+            if contact_markers:
+                try:
+                    mujoco.mj_forward(model, data)
+                    contacts_available = True
+                except mujoco.FatalError:
+                    # Some extreme replay poses make MuJoCo's constraint
+                    # factorization singular. Keep the diagnostic video alive
+                    # and render the pose without contact dots for that frame.
+                    mujoco.mj_kinematics(model, data)
+            else:
+                mujoco.mj_kinematics(model, data)
+            if camera_track:
+                cam.lookat[:] = np.array(
+                    [
+                        0.5 * (ref_qpos[i, 0] + actual_qpos[i, 0]),
+                        0.5 * (ref_qpos[i, 1] + actual_qpos[i, 1]),
+                        max(0.55, 0.5 * (ref_qpos[i, 2] + actual_qpos[i, 2])),
+                    ]
+                )
             renderer.update_scene(data, camera=cam)
+            if contacts_available:
+                add_contact_markers(model, data, renderer)
             rgb = renderer.render()
             frame = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
             align_desc = "initial-root aligned" if align_mode == "initial" else "pose-aligned each frame"
@@ -303,8 +362,8 @@ def render_qpos_video(
                 frame,
                 [
                     f"SONIC actual sim qpos | {motion_name}",
-                    f"white/left: official reference   red/right: simulator qpos   t={i / fps:05.2f}s",
-                    f"{align_desc}; red root comes from MuJoCo, not g1_debug.",
+                    f"white/left: MotionBricks reference   red/right: SONIC physics actual   t={i / fps:05.2f}s",
+                    f"{align_desc}; contact dots: green=reference, yellow=actual.",
                 ],
             )
             writer.write(frame)
@@ -511,6 +570,8 @@ def run_one(job: MotionJob, out_dir: Path, args: argparse.Namespace) -> tuple[Pa
         width=args.width,
         height=args.height,
         align_mode=args.align_mode,
+        contact_markers=args.contact_markers,
+        camera_track=args.camera_track,
     )
     metrics = rollout_metrics(ref_render, actual_render, render_fps)
     metrics.update(
@@ -545,6 +606,8 @@ def main() -> None:
     parser.add_argument("--width", type=int, default=1280)
     parser.add_argument("--height", type=int, default=720)
     parser.add_argument("--align_mode", choices=["initial", "per_frame"], default="initial")
+    parser.add_argument("--contact_markers", action="store_true")
+    parser.add_argument("--camera_track", action="store_true")
     args = parser.parse_args()
     args.out_dir = args.out_dir.resolve()
     args.reference_root = args.reference_root.resolve()

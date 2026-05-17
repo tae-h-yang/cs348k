@@ -47,6 +47,12 @@ Controller-in-the-loop curation of humanoid robot motion data:
   counts plus feature calibration.
 - `scripts/render_prospective_comparison_sheets.py`: renders paired baseline vs
   selector contact sheets for rescues, regressions, and both-failed cases.
+- `scripts/render_existing_sonic_diagnostics.py`: rerenders saved native SONIC
+  logs with camera tracking and contact markers; does not rerun the controller.
+- `scripts/audit_sonic_reference_export.py`: verifies MotionBricks qpos to
+  SONIC CSV export round-trip and reports root-height sanity metrics.
+- `scripts/analyze_sonic_reference_sanity.py`: joins export/root-height sanity
+  metrics with native SONIC rollout outcomes.
 - `scripts/plot_combined_selector.py`: plots combined selector tradeoffs.
 - `scripts/select_visual_audit_clips.py`: selects inspectable best, worst, and
   disagreement clips.
@@ -79,6 +85,10 @@ Generated outputs live under ignored `results/`:
 - `results/sonic_native_release_all210/20260516_123519/native_visual_audit_manifest.csv`
 - `results/prospective_native_selection/20260516_170132/prospective_native_analysis.md`
 - `results/prospective_native_selection/20260516_170132/comparison_sheets/`
+- `results/prospective_native_selection/20260516_170132/native_release/diagnostic_contact_videos/`
+- `results/prospective_native_selection/20260516_170132/sonic_reference_sanity_summary.csv`
+- `results/prospective_native_selection/20260516_170132/sonic_reference_sanity_worst.csv`
+- `results/current_validated/` local pointer hub for the latest usable results
 
 ## Latest Numeric Snapshot
 
@@ -157,6 +167,16 @@ Native SONIC release-validation snapshot:
   selectors is 78/80. This supports cheap screening plus native acceptance
   gating, not heuristic-only certification. Feature calibration on selected
   rows is weak: best scalar AUC is contact artifact score at 0.561.
+- Follow-up audit: white/left in current SONIC actual-qpos videos is the
+  exported MotionBricks reference and red/right is the actual SONIC-controlled
+  robot. Export round-trip is exact to numerical precision across all 320
+  references (`3.33e-16` max absolute error), so suspicious red failures are
+  actual robot/physics failures in those videos, not reference CSV corruption.
+  23/320 references, mostly `walk_stealth`, have root height below 0.60m and
+  need a separate low-root gate. Joining the reference audit to native outcomes
+  shows 7/23 low-root references pass strictly versus 257/297 non-low-root
+  references, confirming that low-root posture is a measurable execution
+  quality issue.
 
 ## Next Actions
 
@@ -169,3 +189,5 @@ Native SONIC release-validation snapshot:
    source.
 5. If rerunning prospective native selection, use `--order interleaved` so
    partial results are not selector-block biased.
+6. Rerun the prospective selector comparison with the new low-root/upright gate
+   in `run_prospective_native_selection.py`.

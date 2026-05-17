@@ -102,3 +102,18 @@
   `results/prospective_native_selection/20260516_170132/comparison_sheets/`.
   The evidence supports a scoped claim: cheap screening helps modestly, but
   native SONIC remains the acceptance gate.
+- User flagged that some failure videos looked like the red ghost/reference was
+  thrown away. Audited the renderer and corrected the color convention:
+  white/left is the MotionBricks reference, red/right is the actual SONIC
+  simulator qpos. Added diagnostic rerendering with contact dots and tracking
+  camera in `scripts/render_existing_sonic_diagnostics.py`.
+- Added `scripts/audit_sonic_reference_export.py` and audited all 320
+  prospective references. Export round-trip max absolute error is `3.33e-16`,
+  ruling out a broad conversion bug. 23/320 references dip below root height
+  0.60m, mostly `walk_stealth`; these should be handled by a low-root posture
+  gate.
+- Added `scripts/analyze_sonic_reference_sanity.py` and joined the export audit
+  with the native rollout table. Low-root references pass strictly in 7/23
+  cases versus 257/297 for non-low-root references. Also patched
+  `run_prospective_native_selection.py` so future prospective runs record and
+  gate upright root-height sanity before exporting SONIC references.

@@ -31,7 +31,10 @@ scripts/
 ├── build_candidate_evidence_table.py
 ├── run_prospective_native_selection.py
 ├── analyze_prospective_native_selection.py
+├── audit_sonic_reference_export.py
+├── analyze_sonic_reference_sanity.py
 ├── render_prospective_comparison_sheets.py
+├── render_existing_sonic_diagnostics.py
 ├── plot_combined_selector.py
 ├── select_visual_audit_clips.py
 ├── render_visual_audit_contact_sheet.py
@@ -60,11 +63,21 @@ results/  (ignored, regenerated)
 ├── contact_quality.csv
 ├── sonic_policy_mujoco_tracking_210_fixed.csv
 ├── sonic_native_release_all210/20260516_123519/
-└── prospective_native_selection/20260516_170132/
+├── prospective_native_selection/20260516_170132/
     ├── prospective_native_analysis.md
     ├── prospective_native_selector_summary.csv
+    ├── sonic_reference_export_audit.csv
+    ├── sonic_reference_sanity_summary.csv
+    ├── sonic_reference_sanity_worst.csv
     ├── native_release/analysis_summary.md
+    ├── native_release/diagnostic_contact_videos/*.mp4
+    ├── native_release/diagnostic_contact_sheet_first40.jpg
     └── comparison_sheets/*.jpg
+└── current_validated/
+    ├── README.md
+    ├── diagnostic_contact_videos -> latest diagnostic videos
+    ├── strict_presentation_pass_videos -> latest strict passes
+    └── fail_videos -> latest failures
 ```
 
 Update this file when adding a new durable loop artifact.

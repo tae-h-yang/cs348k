@@ -104,12 +104,38 @@ def precontroller_score(row: dict[str, object]) -> float:
 
 
 def precontroller_gate(row: dict[str, object]) -> bool:
+    upright_ok = (
+        row["type"] == "whole_body"
+        or (
+            float(row["root_z_min"]) >= 0.60
+            and float(row["low_root_frames_pct"]) <= 0.0
+        )
+    )
     return (
-        float(row["contact_artifact_score"]) <= 0.45
+        upright_ok
+        and float(row["contact_artifact_score"]) <= 0.45
         and float(row["full_risk"]) <= 55.0
         and float(row["p95_torque_limit_ratio"]) <= 4.0
         and float(row["nonfoot_floor_contact_frames_pct"]) <= 20.0
     )
+
+
+def reference_sanity_metrics(qpos: np.ndarray, motion_type: str) -> dict[str, object]:
+    root_z = qpos[:, 2]
+    root_step = np.linalg.norm(np.diff(qpos[:, :2], axis=0), axis=1)
+    joint_step = np.max(np.abs(np.diff(qpos[:, 7:], axis=0)), axis=1)
+    low_root_frames_pct = float(np.mean(root_z < 0.60) * 100.0)
+    upright_gate = motion_type == "whole_body" or (float(np.min(root_z)) >= 0.60 and low_root_frames_pct <= 0.0)
+    return {
+        "root_z_min": float(np.min(root_z)),
+        "root_z_start": float(root_z[0]),
+        "root_z_end": float(root_z[-1]),
+        "root_xy_displacement": float(np.linalg.norm(qpos[-1, :2] - qpos[0, :2])),
+        "p95_root_xy_step_per_frame": float(np.percentile(root_step, 95)) if len(root_step) else 0.0,
+        "p95_joint_step_rad_per_frame": float(np.percentile(joint_step, 95)) if len(joint_step) else 0.0,
+        "low_root_frames_pct": low_root_frames_pct,
+        "upright_reference_gate_pass": "__YES__" if upright_gate else "__NO__",
+    }
 
 
 def score_candidate(
@@ -135,6 +161,7 @@ def score_candidate(
         "path": str(qpos_path),
         **report.summary(),
         **contact,
+        **reference_sanity_metrics(qpos, motion_type),
     }
     row["full_risk"] = row["risk_score"]
     row["precontroller_score"] = precontroller_score(row)
@@ -264,6 +291,9 @@ def main() -> None:
                         "contact_artifact_score": selected["contact_artifact_score"],
                         "precontroller_score": selected["precontroller_score"],
                         "precontroller_gate_pass": selected["precontroller_gate_pass"],
+                        "root_z_min": selected["root_z_min"],
+                        "low_root_frames_pct": selected["low_root_frames_pct"],
+                        "upright_reference_gate_pass": selected["upright_reference_gate_pass"],
                     }
                 )
                 print(f"[export] {selected['selected_motion']}")

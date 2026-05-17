@@ -66,6 +66,16 @@ python scripts/analyze_prospective_native_selection.py \
 
 python scripts/render_prospective_comparison_sheets.py \
   --prospective_dir results/prospective_native_selection/20260516_170132
+
+python scripts/audit_sonic_reference_export.py \
+  --prospective_dir results/prospective_native_selection/20260516_170132
+
+python scripts/analyze_sonic_reference_sanity.py \
+  --prospective_dir results/prospective_native_selection/20260516_170132
+
+MUJOCO_GL=egl python scripts/render_existing_sonic_diagnostics.py \
+  --batch_dir results/prospective_native_selection/20260516_170132/native_release \
+  --groups fail strict_pass --limit 20 --width 960 --height 540
 ```
 
 For future partial/long runs, use `--order interleaved` in
@@ -126,9 +136,36 @@ Key generated artifacts:
   pass sample.
 - `native_release/fail_contact_sheet.jpg`: native failures.
 - `native_release/pass_rate_by_mode.png`: mode-level pass rates.
+- `native_release/diagnostic_contact_videos/`: rerendered videos from saved
+  native logs with camera tracking and contact dots.
+- `native_release/diagnostic_contact_sheet_first40.jpg`: quick sheet of the
+  diagnostic contact videos.
+- `sonic_reference_export_audit.csv`: reference export round-trip and root
+  sanity audit.
+- `sonic_reference_sanity_summary.csv`: joined reference-sanity versus native
+  rollout outcome summary.
+- `sonic_reference_sanity_worst.csv`: ranked low-root references for visual
+  inspection.
+- `results/current_validated/`: local pointer hub to the current result folders
+  so older experiment outputs are easier to ignore during review.
 
 Visual audit notes:
 
+- In `*_actual_sim_qpos.mp4` and diagnostic videos, white/left is the exported
+  MotionBricks reference and red/right is the actual SONIC-controlled robot
+  qpos from MuJoCo. Earlier notes that invert this color convention are wrong.
+- Export round-trip is numerically exact across 320 references:
+  max absolute qpos error is `3.33e-16`. The suspicious failure videos are
+  therefore not explained by a broad joint-order or CSV-conversion bug.
+- 23/320 exported references dip below root height 0.60m, mostly
+  `walk_stealth`. These low-root references need a separate posture/root-height
+  gate before they are treated as upright locomotion.
+- Post-hoc native outcome split after joining the export audit:
+  low-root references reach only 7/23 strict pass, while non-low-root references
+  reach 257/297 strict pass. The low-root issue is therefore not a cosmetic
+  visualization artifact; it is a measurable execution-quality problem.
+- Future prospective runs now record `root_z_min`, `low_root_frames_pct`, and an
+  `upright_reference_gate_pass` flag in `run_prospective_native_selection.py`.
 - Strong fall-to-pass rescues include `walk_boxing_seed10`,
   `walk_happy_dance_seed11`, `walk_scared_seed14`, and `walk_zombie_seed13`.
 - Some rescues are strict-threshold rescues rather than dramatic visual

@@ -22,6 +22,15 @@
   strict pass versus 64/80 deterministic baseline, while the native oracle over
   tested selectors reaches 78/80. This is evidence for controller acceptance
   gating, not evidence that cheap metrics certify physical execution.
+- The SONIC reference export audit for the prospective run shows no broad
+  conversion/joint-order bug: all 320 exported references round-trip back to the
+  expected MuJoCo qpos with max absolute error `3.33e-16`. However, 23/320
+  references have root height below 0.60m, mostly `walk_stealth`, and should be
+  treated as low-posture/invalid for upright-locomotion claims.
+- Joining reference sanity with native rollout outcomes shows a large split:
+  low-root references pass the strict native gate in 7/23 cases, while
+  non-low-root references pass in 257/297 cases. That supports adding a
+  root-height sanity gate before native rollout.
 
 ## Existing Weak Evidence
 
@@ -43,6 +52,9 @@
   in the prospective run; duplicate native rollouts disagreed on strict pass for
   16/80 identities, so the release protocol has measurable repeat-run
   variability.
+- Older visual descriptions may have inverted the color convention. In
+  `render_sonic_actual_sim_examples.py`, white/left is the MotionBricks/SONIC
+  reference and red/right is the actual SONIC simulator qpos.
 
 ## Evidence Needed Next
 
@@ -50,3 +62,4 @@
   modes used in the prospective native-selection run.
 - Rendered videos where metric risk corresponds to visible artifacts.
 - A clean artifact index so the user can review only current final evidence.
+- A rerun of prospective selection with the new root-height/upright gate active.

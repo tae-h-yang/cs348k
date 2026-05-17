@@ -40,7 +40,13 @@ def sample_video(path: Path, samples: int, thumb_w: int) -> np.ndarray:
     labeled = np.full((row.shape[0] + label_h, row.shape[1], 3), 245, dtype=np.uint8)
     labeled[label_h:] = row
     name = path.stem[:90]
-    cv2.putText(labeled, name, (8, 23), cv2.FONT_HERSHEY_SIMPLEX, 0.58, (20, 20, 20), 2, cv2.LINE_AA)
+    font_scale = 0.58
+    thickness = 2
+    max_width = max(80, row.shape[1] - 16)
+    text_width = cv2.getTextSize(name, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)[0][0]
+    if text_width > max_width:
+        font_scale = max(0.32, font_scale * max_width / text_width)
+    cv2.putText(labeled, name, (8, 23), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (20, 20, 20), thickness, cv2.LINE_AA)
     return labeled
 
 
