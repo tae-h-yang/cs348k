@@ -104,3 +104,23 @@ This bundle extracts:
 It is the recommended handoff for reviewing the latest broad 13-mode native
 SONIC evidence, including selected references, native rollout videos, paired
 comparison sheets, diagnostic contact videos, and CSV/Markdown summaries.
+
+Broad13 learned native-acceptance model bundle:
+
+```text
+release_assets/cs348k_broad13_acceptance_model_2026-05-23.tar.zst
+release_assets/cs348k_broad13_acceptance_model_2026-05-23.tar.zst.sha256
+```
+
+Restore the broad13 learned acceptance model:
+
+```bash
+git lfs pull
+sha256sum -c release_assets/cs348k_broad13_acceptance_model_2026-05-23.tar.zst.sha256
+tar --zstd -xf release_assets/cs348k_broad13_acceptance_model_2026-05-23.tar.zst
+```
+
+This bundle extracts
+`results/native_acceptance_model_20260523_broad13_long/`, including
+cross-validation predictions, training logs, the AUC plot, and five best-fold
+checkpoints.

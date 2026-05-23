@@ -55,6 +55,12 @@
   7/8 gated strict), while crawling remains 0 strict passes for every selector.
   Visual diagnostics with contact markers are generated under the broad13
   native release directory and linked from `results/current_validated/`.
+- A broader temporal qpos acceptance model trained on the broad13 native labels
+  reaches cross-validated AUC 0.864 and average precision 0.917, outperforming
+  scalar baselines on the same 405 rows. The best scalar is root-z minimum at
+  AUC 0.782; pre-controller score is AUC 0.752. This supports learned
+  trajectory-level acceptance prediction as the next prospective selector to
+  test.
 
 ## Existing Weak Evidence
 
@@ -84,6 +90,10 @@
 - The learned native-acceptance model is trained on selected references from
   one prospective run. It is not a generator, not MotionBricks fine-tuning, and
   not yet validated as a prospective selector on a new native batch.
+- The broad13 learned acceptance model improves cross-validated prediction but
+  still has fold variability and is trained on noisy native rollout outcomes.
+  It should not be described as physical feasibility certification until a new
+  prospective select-and-rollout batch validates it.
 - Crawling and low-posture modes remain outside the current strong-success
   claim. The broad13 completed run has 0/53 crawling native survivals and
   0 strict crawling passes in the prospective category table; current evidence

@@ -214,6 +214,13 @@ Native SONIC release-validation snapshot:
   88/104. Category split for gated: idle 7/8 strict, upright 71/80 strict, and
   crawling 0/5 strict. The complete report is
   `docs/prospective_broad13_2026-05-22.md`.
+- Broad13 learned native-acceptance model:
+  `results/native_acceptance_model_20260523_broad13_long/` trained for 6000
+  epochs per fold over 405 native rollout labels and 104 grouped identities.
+  Cross-validated AUC is 0.864 and average precision is 0.917, beating the best
+  scalar baseline (`root_z_min`, AUC 0.782). The report is
+  `docs/native_acceptance_broad13_2026-05-23.md`. This is a prospective selector
+  candidate, not a generator or certification method.
 
 ## Next Actions
 
@@ -230,3 +237,6 @@ Native SONIC release-validation snapshot:
    clips from `results/current_validated/`.
 7. Treat crawling/low-posture as a separate unsolved controller/generator
    problem, not as part of the current upright acceptance claim.
+8. Validate the broad13 learned acceptance scorer prospectively: generate a new
+   candidate pool, select with the learned score, then run native SONIC and
+   compare against baseline/gated/scalar selectors.

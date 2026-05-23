@@ -2,6 +2,7 @@
 
 ```text
 docs/
+├── native_acceptance_broad13_2026-05-23.md
 ├── native_acceptance_model_2026-05-22.md
 ├── prospective_broad13_2026-05-22.md
 ├── prospective_lowroot_gate_2026-05-16.md
@@ -116,6 +117,13 @@ results/  (ignored, regenerated)
 │   ├── crossval_predictions.csv
 │   ├── train_log.csv
 │   └── training_auc.png
+├── native_acceptance_model_20260523_broad13_long/
+│   ├── native_acceptance_model.md
+│   ├── scalar_baselines.csv
+│   ├── crossval_predictions.csv
+│   ├── train_log.csv
+│   ├── training_auc.png
+│   └── fold_*_best.pt
 └── current_validated/
     ├── README.md
     ├── prospective_native_analysis.md -> latest selector analysis

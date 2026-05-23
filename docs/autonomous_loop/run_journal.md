@@ -173,3 +173,8 @@
 - Patched native batch tooling so resumed batches refresh parsed `mode` and
   `category` fields, and added semantic `--mode_filters` to
   `render_existing_sonic_diagnostics.py` for review-oriented video selection.
+- Ran a 4.5-hour CUDA training job for a broad13 temporal qpos native-acceptance
+  model: 405 records, 104 grouped identities, 5 folds, 6000 epochs per fold,
+  width 512. The final cross-validated AUC is 0.864 and average precision is
+  0.917, versus scalar baselines between 0.719 and 0.782 AUC. Added
+  `docs/native_acceptance_broad13_2026-05-23.md`.
