@@ -28,6 +28,12 @@ PYTHONUNBUFFERED=1 python scripts/train_native_sonic_acceptance.py \
 
 The job ran on CUDA for about 34 minutes.
 
+Current code now saves `fold_<n>_best.pt` checkpoints for future runs unless
+`--no_save_checkpoints` is passed. The recorded 2026-05-22 long run was created
+before that checkpoint-saving patch, so its durable evidence is the
+cross-validation prediction table, scalar baselines, training log, plot, and
+Markdown summary.
+
 ## Results
 
 | Predictor | AUC | Average precision |

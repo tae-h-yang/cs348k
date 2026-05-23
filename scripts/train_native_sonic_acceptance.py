@@ -241,6 +241,7 @@ def train_one_fold(train_records: list[NativeRecord], val_records: list[NativeRe
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs)
     best_auc = -1.0
     best_rows: list[dict[str, object]] = []
+    best_state: dict[str, torch.Tensor] | None = None
     log_rows = []
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -261,8 +262,21 @@ def train_one_fold(train_records: list[NativeRecord], val_records: list[NativeRe
         if np.isfinite(auc) and auc > best_auc:
             best_auc = auc
             best_rows = rows
+            best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
         if epoch == 1 or epoch % args.log_every == 0:
             print(f"fold {fold} epoch {epoch:4d} train={log_rows[-1]['train_loss']:.4f} val={val_loss:.4f} auc={auc:.3f} ap={ap:.3f}")
+    if best_state is not None and args.save_checkpoints:
+        checkpoint_path = args.out_dir / f"fold_{fold}_best.pt"
+        torch.save(
+            {
+                "model_state": best_state,
+                "width": args.width,
+                "fold": fold,
+                "best_validation_auc": best_auc,
+                "qpos_dim": QPOS_DIM,
+            },
+            checkpoint_path,
+        )
     return log_rows, best_rows
 
 
@@ -382,7 +396,9 @@ def main() -> None:
     parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--log_every", type=int, default=50)
+    parser.add_argument("--no_save_checkpoints", action="store_true")
     args = parser.parse_args()
+    args.save_checkpoints = not args.no_save_checkpoints
 
     random.seed(args.seed)
     np.random.seed(args.seed)

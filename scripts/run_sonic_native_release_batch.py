@@ -23,6 +23,9 @@ DEFAULT_TRACKING_CSV = ROOT / "results" / "sonic_policy_mujoco_tracking_210_fixe
 
 
 def parse_mode(name: str) -> str:
+    selector = selector_prefix(name)
+    if selector:
+        name = name.removeprefix(selector + "_")
     if "_seed" in name:
         return name.rsplit("_seed", 1)[0]
     if "_K" in name:
@@ -95,6 +98,18 @@ def selector_prefix(name: str) -> str:
 
 def interleave_by_identity(names: list[str]) -> list[str]:
     selectors = ("baseline_k0", "best_precontroller", "gated_precontroller", "lowest_id_risk")
+    grouped = group_by_identity(names)
+    interleaved: list[str] = []
+    for identity in sorted(grouped):
+        for selector in selectors:
+            if selector in grouped[identity]:
+                interleaved.append(grouped[identity][selector])
+        for selector in sorted(set(grouped[identity]) - set(selectors)):
+            interleaved.append(grouped[identity][selector])
+    return interleaved
+
+
+def group_by_identity(names: list[str]) -> dict[str, dict[str, str]]:
     grouped: dict[str, dict[str, str]] = {}
     passthrough: list[str] = []
     for name in names:
@@ -107,14 +122,30 @@ def interleave_by_identity(names: list[str]) -> list[str]:
             identity = identity.rsplit("_cand", 1)[0]
         grouped.setdefault(identity, {})[selector] = name
 
-    interleaved: list[str] = []
+    for name in passthrough:
+        grouped.setdefault(name, {})[""] = name
+    return grouped
+
+
+def interleave_by_mode_identity(names: list[str]) -> list[str]:
+    selectors = ("baseline_k0", "best_precontroller", "gated_precontroller", "lowest_id_risk", "")
+    grouped = group_by_identity(names)
+    by_mode: dict[str, list[str]] = {}
     for identity in sorted(grouped):
-        for selector in selectors:
-            if selector in grouped[identity]:
+        by_mode.setdefault(parse_mode(identity), []).append(identity)
+
+    interleaved: list[str] = []
+    while any(by_mode.values()):
+        for mode in sorted(by_mode):
+            if not by_mode[mode]:
+                continue
+            identity = by_mode[mode].pop(0)
+            for selector in selectors:
+                if selector in grouped[identity]:
+                    interleaved.append(grouped[identity][selector])
+            for selector in sorted(set(grouped[identity]) - set(selectors)):
                 interleaved.append(grouped[identity][selector])
-        for selector in sorted(set(grouped[identity]) - set(selectors)):
-            interleaved.append(grouped[identity][selector])
-    return interleaved + passthrough
+    return interleaved
 
 
 def read_one_summary(path: Path) -> dict[str, str]:
@@ -181,7 +212,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--order",
-        choices=("sorted", "interleaved"),
+        choices=("sorted", "interleaved", "mode_interleaved"),
         default="sorted",
         help="Run order for the selected candidate list.",
     )
@@ -208,6 +239,9 @@ def main() -> None:
         candidates = build_broad100(args.reference_root, args.tracking_csv, args.limit)
     if args.order == "interleaved":
         candidates = interleave_by_identity(candidates)
+        candidates = candidates[: args.limit]
+    elif args.order == "mode_interleaved":
+        candidates = interleave_by_mode_identity(candidates)
         candidates = candidates[: args.limit]
 
     candidate_csv = args.out_dir / "candidate_list.csv"
