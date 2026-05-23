@@ -74,3 +74,33 @@ It is the recommended handoff for continuing the latest SONIC validation work
 on another machine. It intentionally omits older scratch/failed result trees
 from `results/`, which are much larger and not needed for the current result
 hub.
+
+Broad 13-mode native SONIC handoff bundle:
+
+```text
+release_assets/cs348k_broad13_results_data_2026-05-22.tar.zst.part-aa
+release_assets/cs348k_broad13_results_data_2026-05-22.tar.zst.part-ab
+release_assets/cs348k_broad13_results_data_2026-05-22.tar.zst.part-ac
+release_assets/cs348k_broad13_results_data_2026-05-22.tar.zst.sha256
+```
+
+Restore the broad13 run:
+
+```bash
+git lfs pull
+cd release_assets
+cat cs348k_broad13_results_data_2026-05-22.tar.zst.part-* > cs348k_broad13_results_data_2026-05-22.tar.zst
+sha256sum -c cs348k_broad13_results_data_2026-05-22.tar.zst.sha256
+cd ..
+tar --zstd -xf release_assets/cs348k_broad13_results_data_2026-05-22.tar.zst
+```
+
+This bundle extracts:
+
+- `data/motionbricks/`
+- `results/prospective_native_selection/20260522_broad13/`
+- `results/current_validated/`
+
+It is the recommended handoff for reviewing the latest broad 13-mode native
+SONIC evidence, including selected references, native rollout videos, paired
+comparison sheets, diagnostic contact videos, and CSV/Markdown summaries.
