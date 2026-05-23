@@ -122,6 +122,44 @@ def per_mode_summary(rows: list[dict[str, object]]) -> list[dict[str, object]]:
     return out
 
 
+def motion_category(mode: str) -> str:
+    if "crawling" in mode:
+        return "low_posture_crawling"
+    if mode == "idle":
+        return "idle"
+    return "upright"
+
+
+def category_summary(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    grouped: dict[tuple[str, str], list[dict[str, object]]] = defaultdict(list)
+    for row in rows:
+        if row.get("native_status") == "completed":
+            grouped[(str(row["selector"]), motion_category(str(row["mode"])))].append(row)
+    out = []
+    for (selector, category), group in sorted(grouped.items()):
+        strict = [r for r in group if r["native_strict_pass"] == "__YES__"]
+        survive = [r for r in group if r["native_pass"] == "__YES__"]
+        frame0 = [
+            r
+            for r in group
+            if r.get("native_fell") == "True" and f(r, "native_fall_time_s", 999.0) <= 1e-6
+        ]
+        out.append(
+            {
+                "selector": selector,
+                "category": category,
+                "n": len(group),
+                "survive": len(survive),
+                "strict": len(strict),
+                "frame0_fails": len(frame0),
+                "strict_rate": len(strict) / max(len(group), 1),
+                "mean_rmse": float(np.mean([f(r, "native_mean_joint_rmse") for r in group])),
+                "mean_root_xy_error": float(np.mean([f(r, "native_mean_root_xy_error") for r in group])),
+            }
+        )
+    return out
+
+
 def identity_key(row: dict[str, object]) -> tuple[str, str]:
     return str(row["mode"]), str(row["seed_idx"])
 
@@ -339,7 +377,9 @@ def plot_summary(path: Path, summary: list[dict[str, object]]) -> None:
 
 def write_markdown(
     path: Path,
+    joined: list[dict[str, object]],
     summary: list[dict[str, object]],
+    category_rows: list[dict[str, object]],
     mode_rows: list[dict[str, object]],
     comparison_rows: list[dict[str, object]],
     calibration_rows: list[dict[str, object]],
@@ -348,6 +388,9 @@ def write_markdown(
         "# Prospective Native Selection Analysis",
         "",
         "Candidates were selected before native SONIC rollout.",
+        "",
+        f"Native rows completed: {sum(row.get('native_status') == 'completed' for row in joined)}/{len(joined)} selected references.",
+        "Identity-denominator rates use all candidate identities, so partial runs should be interpreted through the per-category and per-mode tables.",
         "",
         "## Selector Summary",
         "",
@@ -386,6 +429,19 @@ def write_markdown(
             f"{int(row['regressed_count'])} | "
             f"{float(row['mean_rmse_delta_vs_baseline']):+.3f} | "
             f"{float(row['mean_risk_delta_vs_baseline']):+.2f} |"
+        )
+    lines += [
+        "",
+        "## Per-Category Strict Counts",
+        "",
+        "| selector | category | strict | survive | n | frame-0 fails | mean RMSE | mean root XY error |",
+        "|---|---|---:|---:|---:|---:|---:|---:|",
+    ]
+    for row in category_rows:
+        lines.append(
+            f"| {row['selector']} | {row['category']} | {int(row['strict'])} | "
+            f"{int(row['survive'])} | {int(row['n'])} | {int(row['frame0_fails'])} | "
+            f"{float(row['mean_rmse']):.3f} | {float(row['mean_root_xy_error']):.3f} |"
         )
     lines += [
         "",
@@ -432,12 +488,14 @@ def main() -> None:
     candidate_rows = read_rows(prospective_dir / "prospective_candidates.csv")
     summary = summarize(joined, candidate_rows)
     summary_with_oracle = summary + [native_selector_oracle(joined, candidate_rows)]
+    category_rows = category_summary(joined)
     mode_rows = per_mode_summary(joined)
     comparison_rows = baseline_comparison(joined)
     calibration_rows = feature_calibration(joined)
     identity_rows = identity_outcomes(joined)
     write_rows(prospective_dir / "prospective_native_joined.csv", joined)
     write_rows(prospective_dir / "prospective_native_selector_summary.csv", summary_with_oracle)
+    write_rows(prospective_dir / "prospective_native_by_category.csv", category_rows)
     write_rows(prospective_dir / "prospective_native_by_mode.csv", mode_rows)
     write_rows(prospective_dir / "prospective_native_baseline_comparison.csv", comparison_rows)
     write_rows(prospective_dir / "prospective_native_feature_calibration.csv", calibration_rows)
@@ -445,7 +503,9 @@ def main() -> None:
     plot_summary(prospective_dir / "prospective_native_selector_summary.png", summary)
     write_markdown(
         prospective_dir / "prospective_native_analysis.md",
+        joined,
         summary_with_oracle,
+        category_rows,
         mode_rows,
         comparison_rows,
         calibration_rows,
