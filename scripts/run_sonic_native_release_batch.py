@@ -90,7 +90,14 @@ def build_all(reference_root: Path, limit: int) -> list[str]:
 
 
 def selector_prefix(name: str) -> str:
-    for prefix in ("baseline_k0", "lowest_id_risk", "best_precontroller", "gated_precontroller", "learned_acceptance"):
+    for prefix in (
+        "baseline_k0",
+        "lowest_id_risk",
+        "best_precontroller",
+        "gated_precontroller",
+        "learned_acceptance",
+        "hybrid_acceptance",
+    ):
         if name.startswith(prefix + "_"):
             return prefix
     return ""

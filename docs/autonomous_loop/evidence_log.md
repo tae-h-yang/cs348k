@@ -75,6 +75,11 @@
   ensemble score >= 0.5 accepts 88/104 identities, removes all 16 crawling
   selections, and retains all 76 strict passes. Accepted-set strict rate rises
   from 73.1% to 86.4%, at the cost of leaving unsupported identities uncovered.
+- A first all-candidate hybrid queue rejects crawling, exports 88 supported
+  references, and closes its 9 previously missing native labels. The 9 new
+  videos have 9/9 visual pass and no falls, including a `walk_stealth` stress
+  case. Overall hybrid accepted-set strict pass is 74/88 because two idle clips
+  drift too far in root XY.
 - Frame-level tracked-camera visual audit was added because fixed-camera video
   review created false positives when the robot walked out of frame. The
   learned prospective diagnostic set has 104/104 videos audited from pixels:
@@ -118,6 +123,10 @@
   on the current broad13 run: 76/104 strict versus 78/104. Its upright split is
   also lower, 68/80 versus 71/80. The learned model is useful, but not a
   replacement for hard root/contact/category gates.
+- The first hybrid queue also does not create a new headline win: 74/88 strict
+  among accepted identities after native label closure. It confirms that the
+  next selector needs an explicit root-drift/idle-position sanity term in
+  addition to learned score.
 - The prospective learned selector is not a fully clean deployment validation:
   it selects from the same broad13 candidate pool used for training labels.
   46/104 selected candidates were already native-evaluated, while 58/104 were

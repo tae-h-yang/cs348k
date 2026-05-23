@@ -142,6 +142,13 @@ keeps 76 strict passes. This raises accepted-set strict rate from 73.1% to
 86.4%, but it leaves 16 identities uncovered. The right claim is therefore
 learned acceptance plus abstention, not universal best-of-K generation.
 
+A first all-candidate hybrid queue was then exported with hard crawling/root
+gates plus learned-score ranking. After evaluating the 9 selected references
+that were not already covered by the learned rollout, the hybrid queue reaches
+74/88 strict accepted identities. The 9 new videos all pass frame-level visual
+audit, but two idle clips fail the strict root-XY threshold. This is a useful
+diagnostic, not a stronger result than the abstention table.
+
 Tracked-camera videos with contact dots were rendered for all 104 learned
 selections and audited frame-by-frame from MP4 pixels. The audit reports
 27 visual passes, 61 warnings, and 16 visual failures. Only one native strict

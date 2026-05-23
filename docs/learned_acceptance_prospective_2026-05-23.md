@@ -123,6 +123,13 @@ The useful behavior is abstention, not forced selection. A threshold near 0.5
 removes the unsupported crawling identities and raises strict rate from 73.1%
 to 86.4%, at the cost of covering only 88/104 identities.
 
+A first all-candidate hybrid queue was also built and partially newly evaluated;
+see `docs/hybrid_acceptance_queue_2026-05-23.md`. That queue rejects crawling
+and accepts 88 identities, but reaches 74/88 strict after closing the 9 missing
+native labels. The difference from the 76/88 abstention table is caused by two
+idle references that survive and pass visual audit but drift too far in root XY.
+So hybrid learned ranking still needs an explicit root-drift/idle-position term.
+
 ## Frame-Level Visual Audit
 
 Tracked-camera diagnostic videos were required because the original fixed-camera

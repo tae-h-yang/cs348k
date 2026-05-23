@@ -66,6 +66,8 @@ Controller-in-the-loop curation of humanoid robot motion data:
 - `scripts/analyze_learned_acceptance_rollout.py`: audits learned rollout
   prior-evaluated versus newly evaluated splits, score-threshold abstention,
   and same-pool hybrid diagnostics.
+- `scripts/select_hybrid_acceptance_candidates.py`: builds a hard-gated
+  learned-score queue, with optional SONIC reference export.
 - `scripts/plot_combined_selector.py`: plots combined selector tradeoffs.
 - `scripts/select_visual_audit_clips.py`: selects inspectable best, worst, and
   disagreement clips.
@@ -249,6 +251,15 @@ Native SONIC release-validation snapshot:
   passes, 61 warnings, 16 visual failures, and 1 strict native pass with a
   visual-fail flag. Reviewed videos are under
   `results/prospective_native_selection/20260523_learned_acceptance_eval/native_release/visual_reviewed_presentation_videos/`.
+- Hybrid hard-gate learned-score queue:
+  `results/prospective_native_selection/20260523_hybrid_acceptance_queue/`
+  selects 88 supported identities and rejects all 16 crawling identities. The 9
+  selections not already covered by learned rollout labels were run through
+  native SONIC in `native_release_missing9/`: all 9 survived and all 9 pass
+  frame-level visual audit, but two idle clips fail the strict root-XY drift
+  threshold. Closed-label hybrid accepted-set strict pass is therefore 74/88,
+  with 68/80 upright strict and 6/8 idle strict. The report is
+  `docs/hybrid_acceptance_queue_2026-05-23.md`.
 
 ## Next Actions
 
@@ -268,3 +279,6 @@ Native SONIC release-validation snapshot:
 8. Build and test a hybrid learned selector: hard-reject unsupported
    low-posture/crawling for the current claim, apply root/contact sanity gates,
    then rank remaining candidates by the learned native-acceptance ensemble.
+9. Add an explicit root-drift or idle-position sanity term to the hybrid
+   ranking; the current learned score can select visually acceptable idle clips
+   that fail strict root XY drift.

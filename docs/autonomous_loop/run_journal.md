@@ -214,3 +214,13 @@
 - Added `docs/learned_acceptance_prospective_2026-05-23.md` with commands,
   results, visual-audit counts, interpretation, and next hybrid-gate
   experiment.
+- Added `scripts/select_hybrid_acceptance_candidates.py` and exported a
+  hard-gated learned-score queue under
+  `results/prospective_native_selection/20260523_hybrid_acceptance_queue/`.
+  The queue selects 88 supported identities and rejects all 16 crawling
+  identities.
+- Ran native SONIC for the 9 hybrid selections not already covered by the
+  learned prospective rollout. All 9 survived and all 9 pass visual pixel audit,
+  but two idle clips fail strict due to root XY drift. The closed-label hybrid
+  queue is therefore 74/88 strict, not a new headline win. Added
+  `docs/hybrid_acceptance_queue_2026-05-23.md`.

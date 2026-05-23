@@ -148,3 +148,24 @@ This bundle extracts
 including the learned selected references, native SONIC rollout summaries,
 tracked diagnostic contact videos, frame-level visual audits, abstention/hybrid
 audit CSVs, and the reviewed presentation-video subset.
+
+Hybrid acceptance queue bundle:
+
+```text
+release_assets/cs348k_hybrid_acceptance_queue_2026-05-23.tar.zst
+release_assets/cs348k_hybrid_acceptance_queue_2026-05-23.tar.zst.sha256
+```
+
+Restore the hybrid hard-gate learned-score queue:
+
+```bash
+git lfs pull
+sha256sum -c release_assets/cs348k_hybrid_acceptance_queue_2026-05-23.tar.zst.sha256
+tar --zstd -xf release_assets/cs348k_hybrid_acceptance_queue_2026-05-23.tar.zst
+```
+
+This bundle extracts
+`results/prospective_native_selection/20260523_hybrid_acceptance_queue/`,
+including the 88 accepted references, 16 rejected identities, 9 newly evaluated
+native SONIC rollouts, tracked diagnostic contact videos, and frame-level
+visual audit for those new rollouts.
