@@ -86,9 +86,11 @@ def test_native_batch_mode_parsing_strips_selector_prefixes() -> None:
     assert parse_mode("baseline_k0_idle_seed7_cand0") == "idle"
     assert parse_mode("best_precontroller_injured_walk_seed10_cand0") == "injured_walk"
     assert parse_mode("lowest_id_risk_hand_crawling_seed9_cand1") == "hand_crawling"
+    assert parse_mode("learned_acceptance_walk_stealth_seed9_cand7") == "walk_stealth"
     assert category("baseline_k0_idle_seed7_cand0") == "idle"
     assert category("best_precontroller_hand_crawling_seed9_cand1") == "low_posture_crawling"
     assert category("gated_precontroller_walk_stealth_seed9_cand1") == "upright"
+    assert category("learned_acceptance_idle_seed9_cand0") == "idle"
 
 
 def test_mode_interleaved_order_balances_identity_modes() -> None:

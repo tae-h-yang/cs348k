@@ -67,6 +67,20 @@
   selector's 78/104. The all-candidate checkpoint ensemble selects 58/104
   candidates that were not native-evaluated, so those are a prospective rollout
   queue rather than evidence of success.
+- The prospective learned broad13 selector queue has now been evaluated through
+  native SONIC. It reaches 76/104 identity strict passes, 68/80 upright strict,
+  and 8/8 idle strict, versus 70/104 and 63/80 upright for deterministic
+  baseline. This is a real prospective improvement over baseline.
+- On the learned rollout, score thresholding is useful as abstention: requiring
+  ensemble score >= 0.5 accepts 88/104 identities, removes all 16 crawling
+  selections, and retains all 76 strict passes. Accepted-set strict rate rises
+  from 73.1% to 86.4%, at the cost of leaving unsupported identities uncovered.
+- Frame-level tracked-camera visual audit was added because fixed-camera video
+  review created false positives when the robot walked out of frame. The
+  learned prospective diagnostic set has 104/104 videos audited from pixels:
+  27 pass, 61 warn, 16 fail. Only 1/76 strict native passes is also a visual
+  fail, which gives a much cleaner presentation subset than relying on rollout
+  CSVs alone.
 
 ## Existing Weak Evidence
 
@@ -100,10 +114,22 @@
   still has fold variability and is trained on noisy native rollout outcomes.
   It should not be described as physical feasibility certification until a new
   prospective select-and-rollout batch validates it.
+- The prospective learned selector does not beat the hand-coded gated selector
+  on the current broad13 run: 76/104 strict versus 78/104. Its upright split is
+  also lower, 68/80 versus 71/80. The learned model is useful, but not a
+  replacement for hard root/contact/category gates.
+- The prospective learned selector is not a fully clean deployment validation:
+  it selects from the same broad13 candidate pool used for training labels.
+  46/104 selected candidates were already native-evaluated, while 58/104 were
+  newly evaluated in this run. The newly evaluated subset is 37/58 strict,
+  dragged down by 0/15 newly evaluated crawling references.
 - Crawling and low-posture modes remain outside the current strong-success
   claim. The broad13 completed run has 0/53 crawling native survivals and
   0 strict crawling passes in the prospective category table; current evidence
   supports rejection/exposure of this class, not successful generation.
+- In the learned prospective rollout, both crawling modes still fail completely:
+  0/16 survivals and 0/16 strict passes. This is now a repeated negative result,
+  not a one-off artifact.
 
 ## Evidence Needed Next
 
@@ -113,3 +139,6 @@
 - A clean artifact index so the user can review only current final evidence.
 - Human review of the new `results/current_validated/diagnostic_contact_videos/`
   and paired comparison sheets before making presentation clips.
+- A hybrid learned-plus-hard-gate prospective rollout. The current learned model
+  should not be allowed to select unsupported crawling/low-posture references
+  for the upright native-SONIC acceptance claim.

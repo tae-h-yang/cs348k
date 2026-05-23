@@ -1,6 +1,6 @@
 # State Checkpoint
 
-Last updated: 2026-05-22.
+Last updated: 2026-05-23.
 
 ## Current Project Spine
 
@@ -52,12 +52,20 @@ Controller-in-the-loop curation of humanoid robot motion data:
   selector contact sheets for rescues, regressions, and both-failed cases.
 - `scripts/render_existing_sonic_diagnostics.py`: rerenders saved native SONIC
   logs with camera tracking and contact markers; does not rerun the controller.
+- `scripts/visual_audit_sonic_videos.py`: reads diagnostic MP4 pixels frame by
+  frame, segments red actual robot plus white reference robot, and flags visual
+  failures/warnings for human review.
 - `scripts/audit_sonic_reference_export.py`: verifies MotionBricks qpos to
   SONIC CSV export round-trip and reports root-height sanity metrics.
 - `scripts/analyze_sonic_reference_sanity.py`: joins export/root-height sanity
   metrics with native SONIC rollout outcomes.
 - `scripts/train_native_sonic_acceptance.py`: trains a temporal qpos model to
   predict native SONIC strict acceptance from controller-labeled rollouts.
+- `scripts/export_learned_acceptance_selection.py`: exports learned-selector
+  all-candidate choices to SONIC reference CSVs for prospective native rollout.
+- `scripts/analyze_learned_acceptance_rollout.py`: audits learned rollout
+  prior-evaluated versus newly evaluated splits, score-threshold abstention,
+  and same-pool hybrid diagnostics.
 - `scripts/plot_combined_selector.py`: plots combined selector tradeoffs.
 - `scripts/select_visual_audit_clips.py`: selects inspectable best, worst, and
   disagreement clips.
@@ -225,6 +233,22 @@ Native SONIC release-validation snapshot:
   hand-coded gated selector's 78/104, while the all-candidate learned selection
   chooses 58/104 not-yet-native-evaluated candidates. The next hard test is a
   new native rollout of learned-selected candidates.
+- Prospective learned-selector native rollout:
+  `results/prospective_native_selection/20260523_learned_acceptance_eval/`
+  exported and evaluated the learned ensemble's 104 all-candidate choices.
+  Native SONIC completed 104/104 references. Learned selection reaches 76/104
+  identity strict passes, 68/80 upright strict, 8/8 idle strict, and 0/16
+  crawling survival. This beats deterministic baseline (70/104, 63/80 upright)
+  but does not beat the hand-coded gated selector (78/104, 71/80 upright).
+  The split is partly same-pool: 46 learned selections had already been
+  native-evaluated and 58 were newly evaluated; the newly evaluated subset is
+  37/58 strict, mostly because newly evaluated crawling is 0/15. Learned-score
+  abstention at 0.5 accepts 88/104 identities, removes crawling, and keeps all
+  76 strict passes.
+  Tracked-camera frame audit over all 104 diagnostic MP4s reports 27 visual
+  passes, 61 warnings, 16 visual failures, and 1 strict native pass with a
+  visual-fail flag. Reviewed videos are under
+  `results/prospective_native_selection/20260523_learned_acceptance_eval/native_release/visual_reviewed_presentation_videos/`.
 
 ## Next Actions
 
@@ -241,6 +265,6 @@ Native SONIC release-validation snapshot:
    clips from `results/current_validated/`.
 7. Treat crawling/low-posture as a separate unsolved controller/generator
    problem, not as part of the current upright acceptance claim.
-8. Validate the broad13 learned acceptance scorer prospectively: generate a new
-   candidate pool, select with the learned score, then run native SONIC and
-   compare against baseline/gated/scalar selectors.
+8. Build and test a hybrid learned selector: hard-reject unsupported
+   low-posture/crawling for the current claim, apply root/contact sanity gates,
+   then rank remaining candidates by the learned native-acceptance ensemble.

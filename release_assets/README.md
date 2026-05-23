@@ -127,3 +127,24 @@ checkpoints. It also extracts
 `results/prospective_native_selection/20260522_broad13/learned_acceptance_selector/`,
 including all-candidate checkpoint-ensemble scores and the fair out-of-fold
 retrospective selector audit.
+
+Learned acceptance prospective SONIC evaluation bundle:
+
+```text
+release_assets/cs348k_learned_acceptance_eval_2026-05-23.tar.zst
+release_assets/cs348k_learned_acceptance_eval_2026-05-23.tar.zst.sha256
+```
+
+Restore the learned-selector native rollout and visual audit:
+
+```bash
+git lfs pull
+sha256sum -c release_assets/cs348k_learned_acceptance_eval_2026-05-23.tar.zst.sha256
+tar --zstd -xf release_assets/cs348k_learned_acceptance_eval_2026-05-23.tar.zst
+```
+
+This bundle extracts
+`results/prospective_native_selection/20260523_learned_acceptance_eval/`,
+including the learned selected references, native SONIC rollout summaries,
+tracked diagnostic contact videos, frame-level visual audits, abstention/hybrid
+audit CSVs, and the reviewed presentation-video subset.

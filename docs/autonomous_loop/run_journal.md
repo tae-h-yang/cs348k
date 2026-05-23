@@ -184,3 +184,33 @@
   strict passes, close to the hand-coded gated selector's 78/104. The learned
   ensemble's all-candidate choices are mostly not yet native-evaluated, so they
   form the next prospective native rollout queue.
+
+## 2026-05-23
+
+- Exported the broad13 learned-acceptance ensemble's all-candidate selections
+  with `scripts/export_learned_acceptance_selection.py` and ran all
+  104 selected references through native SONIC under
+  `results/prospective_native_selection/20260523_learned_acceptance_eval/`.
+- Patched native batch parsing so the new `learned_acceptance` selector prefix
+  is stripped before mode/category assignment, then refreshed the batch summary.
+- Prospective learned-selector result: 76/104 strict identity passes, 68/80
+  upright strict, 8/8 idle strict, and 0/16 crawling survival. This improves
+  over deterministic baseline (70/104, 63/80 upright) but does not beat the
+  hand-coded gated selector (78/104, 71/80 upright).
+- Added `--all` to `scripts/render_existing_sonic_diagnostics.py` and
+  rerendered every learned-selector rollout with camera tracking and contact
+  markers.
+- Added `scripts/visual_audit_sonic_videos.py`, a frame-level MP4 pixel audit.
+  It segments red actual robot and white reference robot in every frame, then
+  flags missing bodies, large separation, fallen-looking aspect ratios, and
+  sudden visual jumps.
+- Ran the visual audit on all 104 tracked learned-selector diagnostic videos:
+  27 visual pass, 61 warn, 16 fail, and 1 strict native pass with a visual-fail
+  contradiction. The obvious visual failures are dominated by crawling
+  collapses and a few upright fall/separation cases.
+- Created a reviewed 11-video presentation subset under
+  `results/prospective_native_selection/20260523_learned_acceptance_eval/native_release/visual_reviewed_presentation_videos/`,
+  one strict, non-visual-fail representative per supported upright/idle mode.
+- Added `docs/learned_acceptance_prospective_2026-05-23.md` with commands,
+  results, visual-audit counts, interpretation, and next hybrid-gate
+  experiment.

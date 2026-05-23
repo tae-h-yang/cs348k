@@ -77,6 +77,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch_dir", type=Path, required=True)
     parser.add_argument("--motions", nargs="*", default=[])
+    parser.add_argument("--all", action="store_true", help="Render every completed motion in batch_summary.csv.")
     parser.add_argument(
         "--mode_filters",
         nargs="*",
@@ -98,6 +99,8 @@ def main() -> None:
 
     rows = read_rows(batch_dir / "batch_summary.csv")
     selected = list(args.motions)
+    if args.all:
+        selected.extend([r["motion"] for r in rows if r.get("status") == "completed"])
     if args.mode_filters:
         filters = tuple(args.mode_filters)
         mode_rows = [r for r in rows if any(token in r["motion"] for token in filters)]

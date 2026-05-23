@@ -3,6 +3,7 @@
 ```text
 docs/
 ├── native_acceptance_broad13_2026-05-23.md
+├── learned_acceptance_prospective_2026-05-23.md
 ├── native_acceptance_model_2026-05-22.md
 ├── prospective_broad13_2026-05-22.md
 ├── prospective_lowroot_gate_2026-05-16.md
@@ -40,10 +41,13 @@ scripts/
 ├── run_prospective_native_selection.py
 ├── analyze_prospective_native_selection.py
 ├── score_native_acceptance_candidates.py
+├── export_learned_acceptance_selection.py
+├── analyze_learned_acceptance_rollout.py
 ├── audit_sonic_reference_export.py
 ├── analyze_sonic_reference_sanity.py
 ├── render_prospective_comparison_sheets.py
 ├── render_existing_sonic_diagnostics.py
+├── visual_audit_sonic_videos.py
 ├── train_native_sonic_acceptance.py
 ├── plot_combined_selector.py
 ├── select_visual_audit_clips.py
@@ -115,8 +119,24 @@ results/  (ignored, regenerated)
 │       ├── fail_videos/*.mp4
 │       ├── diagnostic_contact_videos/*.mp4
 │       ├── diagnostic_contact_videos_stress_modes/*.mp4
+│       ├── diagnostic_contact_videos_all/*.mp4
+│       ├── visual_frame_audit_tracked/
 │       ├── diagnostic_contact_sheet_first40.jpg
 │       └── diagnostic_contact_sheet_stress_modes_first48.jpg
+├── prospective_native_selection/20260523_learned_acceptance_eval/
+│   ├── prospective_selected.csv
+│   ├── export_manifest.csv
+│   ├── audit/
+│   │   ├── learned_acceptance_rollout_audit.md
+│   │   ├── learned_score_abstention.csv
+│   │   └── known_label_hybrid_selection.csv
+│   ├── sonic_references/*/*.csv
+│   └── native_release/
+│       ├── analysis_summary.md
+│       ├── batch_summary.csv
+│       ├── diagnostic_contact_videos_all/*.mp4
+│       ├── visual_frame_audit_tracked/
+│       └── visual_reviewed_presentation_videos/*.mp4
 ├── native_acceptance_model_20260522_long/
 │   ├── native_acceptance_model.md
 │   ├── scalar_baselines.csv

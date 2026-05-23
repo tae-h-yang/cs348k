@@ -111,3 +111,42 @@ while other folds showed noisier validation loss and lower average precision.
 The correct claim is therefore "learned broad13 acceptance prediction is
 promising and stronger than current scalar gates," not "the model certifies
 physical feasibility."
+
+## Prospective Learned-Selector Rollout
+
+The all-candidate ensemble queue was exported and run through native SONIC under
+`results/prospective_native_selection/20260523_learned_acceptance_eval/`.
+The rollout completed all 104 identities.
+
+| selector | all strict | upright strict | idle strict | crawling strict |
+|---|---:|---:|---:|---:|
+| deterministic baseline | 70/104 | 63/80 | 7/8 | 0/16 |
+| hand-coded gated selector | 78/104 | 71/80 | 7/8 | 0/5 selected |
+| learned acceptance selector | 76/104 | 68/80 | 8/8 | 0/16 |
+
+The learned selector improves over deterministic baseline, but it does not beat
+the hand-coded gated selector. It also fails every crawling identity, which
+means the learned model should be paired with an explicit unsupported-category
+or low-posture rejection gate before future native rollout.
+
+The rollout is partly same-pool rather than a clean deployment split: 46/104
+learned selections had already been native-evaluated in the broad13 selector
+study. Those prior-evaluated selections pass strictly in 39/46 cases, while the
+58 newly evaluated selections pass in 37/58 cases. The newly evaluated upright
+subset is much stronger, 36/42 strict, but the newly evaluated crawling subset
+is 0/15.
+
+An abstention audit shows the likely next method shape. Thresholding the learned
+score at 0.5 accepts 88/104 identities, removes all 16 crawling selections, and
+keeps 76 strict passes. This raises accepted-set strict rate from 73.1% to
+86.4%, but it leaves 16 identities uncovered. The right claim is therefore
+learned acceptance plus abstention, not universal best-of-K generation.
+
+Tracked-camera videos with contact dots were rendered for all 104 learned
+selections and audited frame-by-frame from MP4 pixels. The audit reports
+27 visual passes, 61 warnings, and 16 visual failures. Only one native strict
+pass is also flagged as a visual failure, but that contradiction should be
+excluded from presentation material until manually reviewed.
+
+Full report:
+`docs/learned_acceptance_prospective_2026-05-23.md`.
