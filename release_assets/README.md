@@ -123,4 +123,7 @@ tar --zstd -xf release_assets/cs348k_broad13_acceptance_model_2026-05-23.tar.zst
 This bundle extracts
 `results/native_acceptance_model_20260523_broad13_long/`, including
 cross-validation predictions, training logs, the AUC plot, and five best-fold
-checkpoints.
+checkpoints. It also extracts
+`results/prospective_native_selection/20260522_broad13/learned_acceptance_selector/`,
+including all-candidate checkpoint-ensemble scores and the fair out-of-fold
+retrospective selector audit.

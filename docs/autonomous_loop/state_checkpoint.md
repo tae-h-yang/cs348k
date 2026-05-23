@@ -220,7 +220,11 @@ Native SONIC release-validation snapshot:
   Cross-validated AUC is 0.864 and average precision is 0.917, beating the best
   scalar baseline (`root_z_min`, AUC 0.782). The report is
   `docs/native_acceptance_broad13_2026-05-23.md`. This is a prospective selector
-  candidate, not a generator or certification method.
+  candidate, not a generator or certification method. Retrospective
+  evaluated-only learned selection reaches 77/104 strict passes, close to the
+  hand-coded gated selector's 78/104, while the all-candidate learned selection
+  chooses 58/104 not-yet-native-evaluated candidates. The next hard test is a
+  new native rollout of learned-selected candidates.
 
 ## Next Actions
 

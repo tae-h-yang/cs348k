@@ -55,6 +55,44 @@ Artifacts:
   `results/native_acceptance_model_20260523_broad13_long/fold_1_best.pt` through
   `fold_5_best.pt`.
 
+## Learned Selector Audit
+
+After training, the saved fold checkpoints were used to score all 832 broad13
+candidates with `scripts/score_native_acceptance_candidates.py`. The script
+also builds a fair retrospective selector over native-evaluated candidates only,
+using out-of-fold predictions from `crossval_predictions.csv`.
+
+```bash
+python scripts/score_native_acceptance_candidates.py \
+  --prospective_dir results/prospective_native_selection/20260522_broad13 \
+  --model_dir results/native_acceptance_model_20260523_broad13_long \
+  --out_dir results/prospective_native_selection/20260522_broad13/learned_acceptance_selector \
+  --batch 64
+```
+
+Audit outputs:
+
+- `candidate_scores.csv`: ensemble model scores for all 832 candidates.
+- `ensemble_selection_all_candidates.csv`: best learned-score candidate per
+  identity, for future prospective rollout.
+- `crossval_selection_evaluated_candidates.csv`: fair retrospective best
+  out-of-fold learned-score candidate among the already native-evaluated
+  selector choices.
+- `learned_selector_audit.md`: compact summary.
+
+Retrospective results:
+
+| selector view | evaluated selections | strict among evaluated |
+|---|---:|---:|
+| ensemble over all candidates | 46/104 | 45/46 (97.8%) |
+| out-of-fold over evaluated candidates | 104/104 | 77/104 (74.0%) |
+
+The ensemble-over-all-candidates result is not a success rate, because 58/104
+selected candidates were never run through native SONIC. It is a queue for the
+next native rollout. The fair evaluated-only result is conservative: 77/104 is
+close to the hand-coded gated selector's 78/104 identity strict pass, so the
+learned model has not yet proven prospective selection superiority.
+
 ## Interpretation
 
 This is the strongest evidence so far that native SONIC acceptability is not

@@ -39,6 +39,7 @@ scripts/
 ├── build_candidate_evidence_table.py
 ├── run_prospective_native_selection.py
 ├── analyze_prospective_native_selection.py
+├── score_native_acceptance_candidates.py
 ├── audit_sonic_reference_export.py
 ├── analyze_sonic_reference_sanity.py
 ├── render_prospective_comparison_sheets.py
@@ -103,6 +104,11 @@ results/  (ignored, regenerated)
 │   ├── sonic_reference_export_audit.csv
 │   ├── sonic_references/*/*.csv
 │   ├── comparison_sheets/*.jpg
+│   ├── learned_acceptance_selector/
+│   │   ├── candidate_scores.csv
+│   │   ├── ensemble_selection_all_candidates.csv
+│   │   ├── crossval_selection_evaluated_candidates.csv
+│   │   └── learned_selector_audit.md
 │   └── native_release/
 │       ├── analysis_summary.md
 │       ├── strict_presentation_pass_videos/*.mp4

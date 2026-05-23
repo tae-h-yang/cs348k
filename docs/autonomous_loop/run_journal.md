@@ -178,3 +178,9 @@
   width 512. The final cross-validated AUC is 0.864 and average precision is
   0.917, versus scalar baselines between 0.719 and 0.782 AUC. Added
   `docs/native_acceptance_broad13_2026-05-23.md`.
+- Added `scripts/score_native_acceptance_candidates.py` and scored all 832
+  broad13 candidates with the saved fold checkpoints. Fair retrospective
+  out-of-fold selection over already native-evaluated choices reaches 77/104
+  strict passes, close to the hand-coded gated selector's 78/104. The learned
+  ensemble's all-candidate choices are mostly not yet native-evaluated, so they
+  form the next prospective native rollout queue.

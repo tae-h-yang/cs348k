@@ -61,6 +61,12 @@
   AUC 0.782; pre-controller score is AUC 0.752. This supports learned
   trajectory-level acceptance prediction as the next prospective selector to
   test.
+- Applying the learned broad13 model retrospectively is not yet a decisive
+  selector win. Among already native-evaluated choices, out-of-fold learned
+  selection reaches 77/104 strict passes, close to the hand-coded gated
+  selector's 78/104. The all-candidate checkpoint ensemble selects 58/104
+  candidates that were not native-evaluated, so those are a prospective rollout
+  queue rather than evidence of success.
 
 ## Existing Weak Evidence
 
