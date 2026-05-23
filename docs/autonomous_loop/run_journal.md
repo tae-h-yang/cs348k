@@ -130,3 +130,25 @@
   prompts, and 17 crawl/floor/roll/kneel/plank/handstand/cartwheel-style
   prompts. Added regression tests for uniqueness, category coverage, diversity,
   and label sanity.
+
+## 2026-05-22
+
+- Added `scripts/train_native_sonic_acceptance.py`, a temporal qpos model that
+  learns native SONIC strict-acceptance labels from actual native rollouts. It
+  uses group cross-validation by `(mode, seed)` identity to avoid leakage
+  through duplicate selector reruns.
+- Smoke-tested the trainer for two epochs on CUDA.
+- Ran a longer 5-fold, 3000-epoch CUDA training job on the low-root-gated
+  prospective batch. The temporal model reached cross-validated AUC 0.769 and
+  average precision 0.921, outperforming scalar gates whose AUCs ranged from
+  0.492 to 0.620 on the same rows. Added
+  `docs/native_acceptance_model_2026-05-22.md`.
+- Generated a broader 13-mode prospective candidate pool under
+  `results/prospective_native_selection/20260522_broad13/`: 832 generated
+  candidates, 405 selected SONIC references, including idle, upright gaits, and
+  hand/elbow crawling. Export audit reports max qpos round-trip error
+  `3.33e-16` and 67 low-root references.
+- Started native SONIC evaluation for the broad 13-mode set with interleaved
+  selector order and a 6-hour cap. Early elbow-crawling rollouts fail around
+  2 seconds, consistent with crawling remaining a negative-control category for
+  the current SONIC acceptance gate.

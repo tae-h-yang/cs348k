@@ -2,6 +2,7 @@
 
 ```text
 docs/
+├── native_acceptance_model_2026-05-22.md
 ├── prospective_lowroot_gate_2026-05-16.md
 ├── prospective_native_selection_2026-05-16.md
 └── autonomous_loop/
@@ -40,6 +41,7 @@ scripts/
 ├── analyze_sonic_reference_sanity.py
 ├── render_prospective_comparison_sheets.py
 ├── render_existing_sonic_diagnostics.py
+├── train_native_sonic_acceptance.py
 ├── plot_combined_selector.py
 ├── select_visual_audit_clips.py
 ├── render_visual_audit_contact_sheet.py
@@ -90,6 +92,18 @@ results/  (ignored, regenerated)
 │   ├── native_release/strict_presentation_pass_videos/*.mp4
 │   ├── native_release/fail_videos/*.mp4
 │   └── comparison_sheets/*.jpg
+├── prospective_native_selection/20260522_broad13/
+│   ├── prospective_candidates.csv
+│   ├── prospective_selected.csv
+│   ├── sonic_reference_export_audit.csv
+│   ├── sonic_references/*/*.csv
+│   └── native_release/  (in progress)
+├── native_acceptance_model_20260522_long/
+│   ├── native_acceptance_model.md
+│   ├── scalar_baselines.csv
+│   ├── crossval_predictions.csv
+│   ├── train_log.csv
+│   └── training_auc.png
 └── current_validated/
     ├── README.md
     ├── prospective_native_analysis.md -> latest selector analysis

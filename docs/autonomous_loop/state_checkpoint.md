@@ -1,6 +1,6 @@
 # State Checkpoint
 
-Last updated: 2026-05-17.
+Last updated: 2026-05-22.
 
 ## Current Project Spine
 
@@ -56,6 +56,8 @@ Controller-in-the-loop curation of humanoid robot motion data:
   SONIC CSV export round-trip and reports root-height sanity metrics.
 - `scripts/analyze_sonic_reference_sanity.py`: joins export/root-height sanity
   metrics with native SONIC rollout outcomes.
+- `scripts/train_native_sonic_acceptance.py`: trains a temporal qpos model to
+  predict native SONIC strict acceptance from controller-labeled rollouts.
 - `scripts/plot_combined_selector.py`: plots combined selector tradeoffs.
 - `scripts/select_visual_audit_clips.py`: selects inspectable best, worst, and
   disagreement clips.
@@ -195,6 +197,18 @@ Native SONIC release-validation snapshot:
   measurable native repeat-run variability: best/gated selected the same
   candidate for 74/80 identities, and duplicate rollouts disagreed on strict
   pass for 20/74 of those same-candidate identities.
+- Learned native-acceptance model:
+  `results/native_acceptance_model_20260522_long/` trained a 5-fold temporal
+  qpos CNN on the low-root-gated native rollout labels. Cross-validated AUC is
+  0.769 and average precision is 0.921, versus scalar gates between 0.492 and
+  0.620 AUC. This is promising triage evidence, not a replacement for native
+  SONIC rollout or a learned motion generator.
+- Broad 13-mode prospective run:
+  `results/prospective_native_selection/20260522_broad13/` generated 832
+  candidates over 104 identities and exported 405 SONIC references. Export
+  audit reports 405 references with max round-trip qpos error `3.33e-16` and
+  67 low-root references. Native SONIC evaluation is in progress under
+  `results/prospective_native_selection/20260522_broad13/native_release/`.
 
 ## Next Actions
 

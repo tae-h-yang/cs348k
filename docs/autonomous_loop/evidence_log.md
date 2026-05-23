@@ -37,6 +37,16 @@
   The updated `gated_precontroller` selector reaches 73/80 strict pass versus
   64/80 for deterministic baseline, with 14 rescues and 5 regressions. On the
   known brittle `walk_stealth` mode, it improves strict pass from 3/8 to 7/8.
+- A temporal qpos-to-native-SONIC acceptance model trained on the
+  low-root-gated rollout labels reaches cross-validated AUC 0.769 and average
+  precision 0.921, exceeding the scalar gates tested on the same rows. This
+  supports trajectory-level learned triage as a candidate next step.
+- The broad 13-mode prospective generation run completed 832 generated
+  candidates and 405 selected SONIC references across upright, idle, and
+  crawling modes. Reference export round-trip error remains numerical
+  precision (`3.33e-16` max absolute error), so broad-set failures should be
+  interpreted as generated-reference/controller-distribution issues unless
+  later audits identify a more local bug.
 
 ## Existing Weak Evidence
 
@@ -63,6 +73,12 @@
 - Older visual descriptions may have inverted the color convention. In
   `render_sonic_actual_sim_examples.py`, white/left is the MotionBricks/SONIC
   reference and red/right is the actual SONIC simulator qpos.
+- The learned native-acceptance model is trained on selected references from
+  one prospective run. It is not a generator, not MotionBricks fine-tuning, and
+  not yet validated as a prospective selector on a new native batch.
+- Crawling and low-posture modes remain outside the current strong-success
+  claim. Early broad-set native rollouts show elbow-crawling references failing
+  around 2 seconds even when pre-controller selectors agree.
 
 ## Evidence Needed Next
 
