@@ -5,6 +5,7 @@ docs/
 ├── native_acceptance_broad13_2026-05-23.md
 ├── learned_acceptance_prospective_2026-05-23.md
 ├── hybrid_acceptance_queue_2026-05-23.md
+├── research_positioning_2026-05-23.md
 ├── native_acceptance_model_2026-05-22.md
 ├── prospective_broad13_2026-05-22.md
 ├── prospective_lowroot_gate_2026-05-16.md

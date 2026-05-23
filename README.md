@@ -2,23 +2,44 @@
 
 CS 348K (Visual Computing Systems, Stanford, Spring 2026) course project.
 
-This repo prototypes a physical-awareness layer for MotionBricks-style
-kinematic humanoid plans. The current research contribution is
-**inverse-dynamics-critic-guided inference-time scaling**: sample multiple
-MotionBricks candidate clips at test time, score each with a transparent MuJoCo
-inverse-dynamics heuristic, and keep the lowest-risk candidate.
+This repo studies a physical-awareness layer for MotionBricks-style kinematic
+humanoid plans. The current defensible project is **controller-in-the-loop
+curation and abstention**:
 
-It keeps two complementary views:
+1. generate a fixed MotionBricks candidate pool,
+2. score candidates with transparent pre-controller diagnostics,
+3. evaluate selected references through native SONIC G1 tracking,
+4. train a trajectory-level qpos acceptance model from native labels,
+5. audit rendered videos frame-by-frame so the result is not just a CSV story.
 
-- **Inverse dynamics feasibility:** replay the exact kinematic trajectory and
-  measure the joint torques and unactuated root wrench that would be required.
-- **Forward PD rollout:** track the same trajectory with a simple torque-limited
-  PD controller in MuJoCo. This is a deliberately weak baseline and a qualitative
-  visualization of what happens without a learned balance controller.
+The final-talk claim is intentionally scoped:
 
-The final-talk claim should lean on inverse-dynamics screening/ranking. The PD
-and computed-torque rollouts are negative controls, not evidence of real G1
-execution.
+> Native SONIC exposes a real kinematic-to-dynamic gap. Hand-coded root/contact
+> gates currently give the strongest full-coverage selector. A learned qpos
+> acceptance model predicts native controller success better than scalar
+> diagnostics and is useful for abstention/triage, but it does not fine-tune
+> MotionBricks, solve crawling, or beat the hand-coded gate.
+
+Latest headline numbers:
+
+| Result | Strict native SONIC pass |
+|---|---:|
+| Deterministic MotionBricks baseline | 70/104 |
+| Hand-coded gated pre-controller selector | 78/104 |
+| Learned acceptance selector | 76/104 |
+| Learned abstention, score >= 0.5 | 76/88 accepted |
+| Hybrid hard-gate + learned ranking | 74/88 accepted |
+
+The 16 crawling/low-posture identities are an explicit negative control:
+current SONIC release validation gets 0/16 strict for them. Do not claim broad
+whole-body generation is solved.
+
+Current result docs:
+
+- `docs/prospective_broad13_2026-05-22.md`
+- `docs/native_acceptance_broad13_2026-05-23.md`
+- `docs/learned_acceptance_prospective_2026-05-23.md`
+- `docs/hybrid_acceptance_queue_2026-05-23.md`
 
 ## Setup
 
