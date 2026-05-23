@@ -152,3 +152,24 @@
   selector order and a 6-hour cap. Early elbow-crawling rollouts fail around
   2 seconds, consistent with crawling remaining a negative-control category for
   the current SONIC acceptance gate.
+- Completed the broad 13-mode native SONIC evaluation under
+  `results/prospective_native_selection/20260522_broad13/native_release/`:
+  405/405 selected references evaluated. Prospective analysis shows
+  deterministic baseline at 70/104 strict identity passes, best pre-controller
+  at 73/104, lowest inverse-dynamics risk at 72/104, and gated pre-controller
+  at 78/104. The native oracle over tested selectors is 88/104.
+- Added category-aware broad13 interpretation in
+  `docs/prospective_broad13_2026-05-22.md`. The useful claim is upright
+  controller-in-the-loop curation: gated reaches 71/80 strict on upright
+  identities versus 63/80 baseline. Crawling is an explicit negative control:
+  0 strict passes and 0 survivals for the tested crawling rows.
+- Generated paired comparison sheets for broad13 rescues, regressions, and
+  both-failed cases under `comparison_sheets/`.
+- Generated diagnostic SONIC videos with contact markers and tracking camera,
+  including a stress-mode set for `walk_stealth`, `walk_scared`,
+  `walk_zombie`, `walk_happy_dance`, `walk_boxing`, and `walk_gun`. Updated
+  `results/current_validated/` to point to the broad13 run without deleting old
+  result directories.
+- Patched native batch tooling so resumed batches refresh parsed `mode` and
+  `category` fields, and added semantic `--mode_filters` to
+  `render_existing_sonic_diagnostics.py` for review-oriented video selection.

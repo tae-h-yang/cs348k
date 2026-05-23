@@ -267,6 +267,10 @@ def main() -> None:
     if args.resume and batch_csv.exists():
         with batch_csv.open(newline="") as f:
             batch_rows = list(csv.DictReader(f))
+        for row in batch_rows:
+            motion = str(row.get("motion", ""))
+            row["mode"] = parse_mode(motion)
+            row["category"] = category(motion)
     completed_names = {str(r["motion"]) for r in batch_rows if r.get("status") == "completed"}
 
     for i, motion in enumerate(candidates, start=1):

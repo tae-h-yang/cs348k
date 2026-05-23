@@ -47,6 +47,14 @@
   precision (`3.33e-16` max absolute error), so broad-set failures should be
   interpreted as generated-reference/controller-distribution issues unless
   later audits identify a more local bug.
+- The broad 13-mode native SONIC rollout completed 405/405 selected references.
+  `gated_precontroller` improves strict identity pass from 70/104 baseline to
+  78/104, with 16 rescues and 8 regressions over 93 paired gated identities.
+  The native oracle over tested selectors is 88/104. The effect is strongest
+  for upright stress/style modes such as `walk_stealth` (3/8 baseline strict to
+  7/8 gated strict), while crawling remains 0 strict passes for every selector.
+  Visual diagnostics with contact markers are generated under the broad13
+  native release directory and linked from `results/current_validated/`.
 
 ## Existing Weak Evidence
 
@@ -77,8 +85,9 @@
   one prospective run. It is not a generator, not MotionBricks fine-tuning, and
   not yet validated as a prospective selector on a new native batch.
 - Crawling and low-posture modes remain outside the current strong-success
-  claim. Early broad-set native rollouts show elbow-crawling references failing
-  around 2 seconds even when pre-controller selectors agree.
+  claim. The broad13 completed run has 0/53 crawling native survivals and
+  0 strict crawling passes in the prospective category table; current evidence
+  supports rejection/exposure of this class, not successful generation.
 
 ## Evidence Needed Next
 

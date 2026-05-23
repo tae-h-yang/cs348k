@@ -77,6 +77,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch_dir", type=Path, required=True)
     parser.add_argument("--motions", nargs="*", default=[])
+    parser.add_argument(
+        "--mode_filters",
+        nargs="*",
+        default=[],
+        help="Semantic mode names or substrings, e.g. walk_stealth walk_scared.",
+    )
     parser.add_argument("--groups", nargs="*", choices=("fail", "strict_pass"), default=[])
     parser.add_argument("--limit", type=int, default=12)
     parser.add_argument("--out_dir", type=Path, default=None)
@@ -92,8 +98,16 @@ def main() -> None:
 
     rows = read_rows(batch_dir / "batch_summary.csv")
     selected = list(args.motions)
+    if args.mode_filters:
+        filters = tuple(args.mode_filters)
+        mode_rows = [r for r in rows if any(token in r["motion"] for token in filters)]
+        selected.extend([r["motion"] for r in mode_rows[: args.limit]])
     if "fail" in args.groups:
-        selected.extend([r["motion"] for r in rows if r.get("fell") == "True"][: args.limit])
+        fail_rows = [r for r in rows if r.get("fell") == "True"]
+        if args.mode_filters:
+            filters = tuple(args.mode_filters)
+            fail_rows = [r for r in fail_rows if any(token in r["motion"] for token in filters)]
+        selected.extend([r["motion"] for r in fail_rows[: args.limit]])
     if "strict_pass" in args.groups:
         strict = [
             r
@@ -102,6 +116,9 @@ def main() -> None:
             and float(r["mean_joint_rmse"]) <= 0.20
             and float(r["mean_root_xy_error"]) <= 1.5
         ]
+        if args.mode_filters:
+            filters = tuple(args.mode_filters)
+            strict = [r for r in strict if any(token in r["motion"] for token in filters)]
         selected.extend([r["motion"] for r in strict[: args.limit]])
 
     seen: set[str] = set()

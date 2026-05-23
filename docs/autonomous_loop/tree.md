@@ -3,6 +3,7 @@
 ```text
 docs/
 ├── native_acceptance_model_2026-05-22.md
+├── prospective_broad13_2026-05-22.md
 ├── prospective_lowroot_gate_2026-05-16.md
 ├── prospective_native_selection_2026-05-16.md
 └── autonomous_loop/
@@ -95,9 +96,20 @@ results/  (ignored, regenerated)
 ├── prospective_native_selection/20260522_broad13/
 │   ├── prospective_candidates.csv
 │   ├── prospective_selected.csv
+│   ├── prospective_native_analysis.md
+│   ├── prospective_native_by_category.csv
+│   ├── prospective_native_by_mode.csv
 │   ├── sonic_reference_export_audit.csv
 │   ├── sonic_references/*/*.csv
-│   └── native_release/  (in progress)
+│   ├── comparison_sheets/*.jpg
+│   └── native_release/
+│       ├── analysis_summary.md
+│       ├── strict_presentation_pass_videos/*.mp4
+│       ├── fail_videos/*.mp4
+│       ├── diagnostic_contact_videos/*.mp4
+│       ├── diagnostic_contact_videos_stress_modes/*.mp4
+│       ├── diagnostic_contact_sheet_first40.jpg
+│       └── diagnostic_contact_sheet_stress_modes_first48.jpg
 ├── native_acceptance_model_20260522_long/
 │   ├── native_acceptance_model.md
 │   ├── scalar_baselines.csv
@@ -110,7 +122,9 @@ results/  (ignored, regenerated)
     ├── native_analysis_summary.md -> latest native SONIC analysis
     ├── comparison_sheets -> latest paired sheets
     ├── diagnostic_contact_videos -> latest diagnostic videos
+    ├── diagnostic_contact_videos_stress_modes -> latest stress-mode diagnostics
     ├── diagnostic_contact_sheet_first40.jpg -> latest diagnostic sheet
+    ├── diagnostic_contact_sheet_stress_modes_first48.jpg -> latest stress sheet
     ├── strict_presentation_pass_videos -> latest strict passes
     └── fail_videos -> latest failures
 ```

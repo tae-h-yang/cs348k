@@ -207,8 +207,13 @@ Native SONIC release-validation snapshot:
   `results/prospective_native_selection/20260522_broad13/` generated 832
   candidates over 104 identities and exported 405 SONIC references. Export
   audit reports 405 references with max round-trip qpos error `3.33e-16` and
-  67 low-root references. Native SONIC evaluation is in progress under
-  `results/prospective_native_selection/20260522_broad13/native_release/`.
+  67 low-root references. Native SONIC evaluation completed 405/405 selected
+  references. `gated_precontroller` reaches 78/104 identity strict passes
+  versus 70/104 for deterministic baseline, with 16 rescues and 8 regressions
+  over 93 paired gated identities. The native oracle over tested selectors is
+  88/104. Category split for gated: idle 7/8 strict, upright 71/80 strict, and
+  crawling 0/5 strict. The complete report is
+  `docs/prospective_broad13_2026-05-22.md`.
 
 ## Next Actions
 
@@ -219,7 +224,9 @@ Native SONIC release-validation snapshot:
 4. Investigate whether arbitrary-prompt generation can be accessed or whether
    the 100-prompt suite must be evaluated through another generator/control
    source.
-5. If rerunning prospective native selection, use `--order interleaved` so
-   partial results are not selector-block biased.
-6. Human-review the new low-root-gated diagnostic videos and choose final
-   presentation clips from `results/current_validated/`.
+5. If rerunning prospective native selection, use `--order mode_interleaved` so
+   partial results are not selector-block or mode-block biased.
+6. Human-review the broad13 diagnostic videos and choose final presentation
+   clips from `results/current_validated/`.
+7. Treat crawling/low-posture as a separate unsolved controller/generator
+   problem, not as part of the current upright acceptance claim.
