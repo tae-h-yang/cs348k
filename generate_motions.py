@@ -18,6 +18,7 @@ Output: one .npy file per clip of shape (T, 36) — mujoco qpos format,
         saved to data/motionbricks/.
 """
 
+import argparse
 import sys
 import numpy as np
 from pathlib import Path
@@ -34,6 +35,8 @@ MOTION_CONFIGS = [
     {"mode": "slow_walk",        "n_frames": 200, "type": "locomotion"},
     {"mode": "stealth_walk",     "n_frames": 200, "type": "locomotion"},
     {"mode": "injured_walk",     "n_frames": 200, "type": "locomotion"},
+    {"mode": "walk_left",        "n_frames": 180, "type": "directional_locomotion"},
+    {"mode": "walk_right",       "n_frames": 180, "type": "directional_locomotion"},
     {"mode": "walk_zombie",      "n_frames": 200, "type": "locomotion"},
     {"mode": "walk_stealth",     "n_frames": 180, "type": "locomotion"},
     {"mode": "walk_boxing",      "n_frames": 180, "type": "expressive"},
@@ -92,8 +95,16 @@ MOTIONBRICKS_DIR = Path(__file__).parent.parent / "GR00T-WholeBodyControl" / "mo
 
 
 def main():
-    import os, argparse
+    import os
     from motionbricks.motion_backbone.demo.utils import navigation_demo
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out_dir", type=Path, default=RESULT_DIR)
+    parser.add_argument("--seeds", type=int, default=N_SEEDS)
+    parser.add_argument("--modes", nargs="*", default=None)
+    args_cli = parser.parse_args()
+    args_cli.out_dir = args_cli.out_dir.expanduser().resolve()
+    args_cli.out_dir.mkdir(parents=True, exist_ok=True)
 
     # MotionBricks resolves asset paths relative to its own directory
     original_dir = Path.cwd()
@@ -133,14 +144,24 @@ def main():
     print("Model loaded.")
 
     labels = {}
-    for cfg in MOTION_CONFIGS:
+    selected = [
+        cfg for cfg in MOTION_CONFIGS
+        if args_cli.modes is None or cfg["mode"] in set(args_cli.modes)
+    ]
+    known_modes = {cfg["mode"] for cfg in MOTION_CONFIGS}
+    if args_cli.modes is not None:
+        unknown = sorted(set(args_cli.modes) - known_modes)
+        if unknown:
+            raise ValueError(f"Unknown mode(s): {unknown}; known modes: {sorted(known_modes)}")
+
+    for cfg in selected:
         mode, n_frames, mtype = cfg["mode"], cfg["n_frames"], cfg["type"]
-        for seed in range(N_SEEDS):
+        for seed in range(args_cli.seeds):
             clip_name = f"{mode}_seed{seed}"
             print(f"  Generating: {clip_name} ({n_frames} frames)...")
             try:
                 qpos = generate_clip(demo_agent, mode, n_frames, seed=seed * 1000)
-                out_path = RESULT_DIR / f"{clip_name}.npy"
+                out_path = args_cli.out_dir / f"{clip_name}.npy"
                 np.save(out_path, qpos)
                 labels[clip_name] = mtype
                 print(f"    Saved: {out_path} — shape {qpos.shape}")
@@ -148,8 +169,8 @@ def main():
                 print(f"    FAILED: {e}")
 
     os.chdir(original_dir)
-    np.save(RESULT_DIR / "motion_labels.npy", labels)
-    print(f"\nDone. {len(labels)} clips saved to {RESULT_DIR}/")
+    np.save(args_cli.out_dir / "motion_labels.npy", labels)
+    print(f"\nDone. {len(labels)} clips saved to {args_cli.out_dir}/")
     print("Run evaluation with: python run_eval.py --data_dir data/motionbricks")
 
 
