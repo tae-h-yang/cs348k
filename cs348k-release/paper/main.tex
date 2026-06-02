@@ -26,11 +26,13 @@ the result with a controller rollout?
 I built a physical-awareness loop for generated reference motions. It evaluates
 generated references with MuJoCo inverse-dynamics/contact diagnostics
 \cite{mujoco} and a pretrained SONIC controller audit. The evaluator emits
-interpretable failure tags such as high torque/root wrench, self-contact,
-non-foot floor contact, weak support, contact artifact, and controller
-trackability failure. A deterministic repair baseline creates simple
-retiming/smoothing variants, and the same physical and SONIC gates decide
-whether a candidate is accepted, flagged, or rejected.
+structured failure records such as joint-level torque exceedance, root-wrench
+demand, self-contact pairs, non-foot floor contacts, weak support, contact
+artifacts, and controller trackability failure. Those records are designed to
+drive either an LLM prompt-refinement pass or a direct reference-repair pass.
+The measured repair baseline in this release uses simple retiming/smoothing
+variants, and the same physical and SONIC gates decide whether a candidate is
+accepted, flagged, or rejected.
 
 On the 100-prompt KIMODO benchmark, first-pass references pass the physical
 screen in 48/100 cases, complete the nominal 4-second SONIC rollout in 53/100
@@ -67,7 +69,12 @@ before controller execution?
 
 \section{System}
 
-The final system is a test-time reference screening and repair loop:
+The final system is a test-time reference screening and repair loop. The loop is
+deliberately modular: the evaluator produces a structured description of what
+failed, and a repair policy decides what candidate to try next. In this release,
+the measured repair policy is deterministic retiming/smoothing. The same
+failure records also define an LLM prompt-refinement interface for regenerating
+future KIMODO candidates.
 
 \begin{center}
 \begin{tabular}{llll}
@@ -76,7 +83,7 @@ Stage & Input & Contribution & Output \\
 \midrule
 Generate & text prompt & KIMODO G1 generation & root + joint trajectory \\
 Evaluate & reference & MuJoCo + SONIC checks & risk flags and rollout metrics \\
-Repair & failed candidate & retiming/smoothing variants & repaired candidates \\
+Repair & failed candidate & retiming/smoothing or prompt refinement & repaired candidates \\
 Repeat/gate & new candidate & rescore until budget ends & accepted or flagged clip \\
 \bottomrule
 \end{tabular}
@@ -88,6 +95,61 @@ signals a likely balance problem; and trackability failure means that the
 pretrained SONIC controller could not follow the reference for the rollout
 horizon. SONIC is used as a foundation-style tracking evaluator and acceptance
 gate, not as an optimizer that changes KIMODO.
+
+\subsection{Structured Failure Records}
+
+The evaluator does not only return a scalar risk. It returns records that are
+specific enough to explain the failure and to condition a repair rule. Table
+\ref{tab:records} shows the record fields used by the repair interface.
+
+\begin{table}[h]
+\centering
+\caption{Failure records emitted by the screen. Each record contains a metric
+tag plus local evidence that can be passed to a deterministic repair rule or an
+LLM prompt-refinement step.}
+\label{tab:records}
+\small
+\begin{tabular}{p{0.20\linewidth}p{0.42\linewidth}p{0.27\linewidth}}
+\toprule
+Failure mode & Example record fields & Repair signal \\
+\midrule
+Torque/root wrench & joint name, peak torque ratio, frame, root force & slow/smooth the offending limb \\
+Self-contact & body pair, contact fraction, first frame & separate limbs/torso \\
+Non-foot floor & body name, contact frames, task contact allowance & lift or justify non-foot support \\
+Support proxy & support margin, low-support frame fraction & widen stance or reduce COM shift \\
+Contact artifact & foot slip, penetration, impulse spike & clean foot placement \\
+SONIC trackability & fall frame, track seconds, RMSE, root error & lower speed/amplitude \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A typical serialized record looks like:
+
+\begin{quote}\small
+\texttt{failure=torque\_root\_wrench; joint=right\_shoulder\_pitch;}\\
+\texttt{peak\_torque\_limit\_ratio=16.7; frame=84;}\\
+\texttt{root\_force\_newton=6900; sonic\_track\_seconds=2.78.}
+\end{quote}
+
+For the LLM prompt-refinement path, this record is inserted into a constrained
+rewrite prompt:
+
+\begin{quote}\small
+\textbf{Base instruction.} Rewrite the humanoid motion prompt so it preserves
+the task intent but reduces the listed physical failure. Keep the motion on a
+Unitree G1 humanoid, avoid adding objects not in the original task, and produce
+one concise revised prompt.\\
+\textbf{Input.} Original prompt, failure tag, structured metric record, and
+allowed repair vocabulary.\\
+\textbf{Output.} A revised prompt such as ``walk forward with slower, smoother
+arm swing and shorter steps while keeping both feet under the body.''
+\end{quote}
+
+This LLM interface is useful because it turns simulator evidence into a
+generator-facing instruction. However, the aggregate repair numbers reported in
+this paper are from the deterministic retiming/smoothing baseline; prompt
+regeneration should be counted separately once a full regeneration run is
+available.
 
 \section{Benchmark and Metrics}
 
@@ -102,6 +164,15 @@ For each generated G1 trajectory, the evaluator computes torque demand relative
 to actuator limits, root force/torque, velocity, acceleration, jerk,
 self-contact, non-foot floor contact, contact artifacts, support-region proxy
 violations, SONIC no-fall, survival time, and joint RMSE.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{paper_success_video_strips.jpg}
+\caption{Six examples that pass the physical screen and complete the nominal
+SONIC rollout. Each row is one video sampled at six times. Red ghost is the
+reference target; solid G1 is the MuJoCo/SONIC rollout.}
+\label{fig:successstrips}
+\end{figure}
 
 \section{Results}
 
@@ -162,6 +233,16 @@ torque/root wrench, `turn\_in\_place' for self-contact, `knee\_slide' for
 non-foot floor contact, `step\_over\_right' for support proxy, `carry\_box' for
 controller trackability, and `happy\_dance' for contact artifact.
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{paper_failure_video_strips.jpg}
+\caption{Representative generated-reference failures used in the slide deck.
+Rows correspond to torque/root-wrench demand, self-contact, non-foot floor
+contact, support proxy, controller trackability, and contact artifact. Each row
+shows six frames from the corresponding rollout video.}
+\label{fig:failurestrips}
+\end{figure}
+
 \subsection{Deterministic Repair Snapshot}
 
 \begin{table}[h]
@@ -193,6 +274,16 @@ placement; and `backward\_recovery' uses a smaller lean and step back. The deck
 also includes an illustrative `pushup\_pose' height-clearance demo; the table
 above is the measured evidence.
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{paper_repair_video_strips.jpg}
+\caption{Before/after repair videos sampled across time. Each panel is a paired
+video: original KIMODO on the left and the selected repaired candidate on the
+right. The three rows show forward walking, waving, and split-squat jump repair
+examples from the deck.}
+\label{fig:repairstrips}
+\end{figure}
+
 \section{Interpretation}
 
 The results support the hypothesis in a bounded way. Generated references have
@@ -207,6 +298,15 @@ wrench stress, `carry\_box' for controller trackability, and
 text-to-robot motion, robust acrobatics/low-posture tracking, or automatic
 repair for every invalid reference. Stronger results likely require fine-tuning
 or training a motion-level refiner, not only retiming and smoothing.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{paper_boundary_video_strips.jpg}
+\caption{Boundary cases that remain hard after the current screen/repair loop:
+forward roll, carry-box tracking, and cartwheel-style acrobatics. These examples
+are included to make the negative result visible, not to claim success.}
+\label{fig:boundarystrips}
+\end{figure}
 
 \section{Limitations and Future Work}
 

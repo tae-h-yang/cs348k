@@ -5,8 +5,10 @@ Final project: **Physical Awareness for Generated Humanoid Motion**.
 This release contains the final slides, report, and selected video/figure
 artifacts for a test-time physical-audit and reference-repair loop for
 KIMODO-generated Unitree G1 reference motions. The system uses MuJoCo physical
-checks and SONIC rollout evidence to produce failure tags, then tests simple
-retiming/smoothing repairs before accepting, flagging, or rejecting references.
+checks and SONIC rollout evidence to produce structured failure records. Those
+records support LLM prompt refinement or direct repair; the measured baseline
+in this release tests simple retiming/smoothing repairs before accepting,
+flagging, or rejecting references.
 
 ## Start Here
 
