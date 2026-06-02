@@ -1,6 +1,6 @@
 # State Checkpoint
 
-Last updated: 2026-05-23.
+Last updated: 2026-05-30.
 
 ## Current Project Spine
 
@@ -12,6 +12,28 @@ Controller-in-the-loop curation of humanoid robot motion data:
 4. evaluate physics/contact/dynamics,
 5. evaluate controller tracking where possible,
 6. select candidates and render visible evidence.
+
+## Current Truthful Headline
+
+The best current result is a MotionBricks best-of-K verifier/selector, not a
+fine-tuned generator: targeted K1024 native SONIC selection reaches 100/100
+reference-aware no-fall and projected 84/100 strict tracking on the 100-prompt
+Humanoid100 suite. The repeat-conservative native table is 100/100
+reference-aware no-fall and 74/100 strict tracking. Do not claim 100/100 strict
+or 100/100 semantic success.
+
+The remaining 16 failures are concentrated in floor/low-posture and acrobatic
+stress prompts. Retiming/smoothing, root angular-velocity correction, and a
+partial upright-safe projection probe added 0 strict rescues. The next
+scientifically credible direction is contact/state-conditioned retargeting or
+training a tracker/generator for non-foot support contacts.
+
+New experimental execution-refinement result: controller-manifold projection
+exports the native SONIC executed qpos as a new reference and reruns the native
+tracker. Iterations 1-4 rescue 10/16 remaining hard prompts and yield 100/100
+reference-aware no-fall plus 94/100 strict tracking. This is not
+prompt-preserving by itself; it is evidence for a refinement/projection method
+that must be paired with semantic/style audit.
 
 ## Current Tracked Inputs
 
@@ -74,10 +96,101 @@ Controller-in-the-loop curation of humanoid robot motion data:
 - `scripts/render_visual_audit_contact_sheet.py`: renders start/middle/end frame
   contact sheets for visual sanity checks.
 - `scripts/evaluate_sonic_policy_mujoco.py`: approximate SONIC policy bridge.
+  It now supports `--init_reference_pose` and records initial qpos/qvel audit
+  arrays in saved rollout NPZs.
+- `scripts/render_selected_overlay_videos.py`: renders saved approximate SONIC
+  rollouts as solid MuJoCo robot plus red translucent reference ghost.
+- `scripts/stitch_humanoid100_before_after_videos.py`: creates all-100
+  side-by-side K=1 baseline versus selected-result videos.
+- `scripts/make_humanoid100_video_contact_sheet.py`: creates visual contact
+  sheets from rendered MP4 indexes.
+- `scripts/analyze_dual_track_motion_generation.py`: harvests completed
+  MotionBricks RalphLoop sweeps and writes the active MotionBricks/Kimodo
+  dual-track report.
+- `scripts/dual_track_kimodo_motionbricks_loop.sh`: long-running monitor that
+  refreshes MotionBricks evidence and, when Hugging Face access is available,
+  runs Kimodo-G1 Humanoid100 generation, physical evaluation, SONIC reference
+  export, and approximate SONIC rollouts/videos.
+- `scripts/run_kimodo_humanoid100_experiment.py`: resumable Kimodo-G1 runner
+  for the 100-prompt suite with `(T, 36)` qpos validation and blocked/failed
+  manifest reporting.
+- `scripts/evaluate_kimodo_humanoid100.py`: applies the same inverse-dynamics
+  and contact verifier to Kimodo qpos exports, with optional SONIC reference
+  export.
+- `scripts/convert_kimodo_g1_examples.py`: converts bundled official
+  Kimodo-G1 demo NPZ files to `(T, 36)` MuJoCo qpos for local verifier and
+  SONIC sanity checks.
+- `scripts/analyze_targeted_native_rescue.py`: scores targeted native SONIC
+  retry batches against the current all-100 selection table.
+- `scripts/generate_retimed_sonic_references.py`: creates retimed/smoothed
+  diagnostic references for hard native failures.
+- `scripts/generate_angvel_corrected_sonic_references.py`: copies selected
+  SONIC references and recomputes body angular velocity from body quaternions.
+- `scripts/generate_upright_safe_sonic_references.py`: creates diagnostic
+  upright-projected references for probing root/contact failure modes.
+- `scripts/generate_sonic_projected_references.py`: extracts actual native
+  SONIC MuJoCo rollout qpos and exports it as a controller-projected reference.
 
 ## Current Generated Outputs
 
 Generated outputs live under ignored `results/`:
+
+- `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/final_100_native_selection_ref_aware_k1024_targeted.csv`:
+  best current all-100 native selection table. Headline with caveat: 100/100
+  reference-aware no-fall and projected 84/100 strict tracking.
+- `results/ralphloop/20260530_003531/humanoid100_final_eval_k1024/nonstrict_k1024_native_sonic/`:
+  K1024 targeted retry videos/metrics for the 26 previously non-strict prompts.
+- `results/ralphloop/20260530_003531/humanoid100_final_eval_k1024/retimed_nonstrict_native_sonic/`:
+  96 retimed/smoothed variants for the 16 remaining hard prompts; 0/16 strict
+  rescues.
+- `results/ralphloop/20260530_003531/humanoid100_final_eval_k1024/angvel_corrected_native_sonic/`:
+  16 angular-velocity-corrected native SONIC videos/metrics; 0/16 strict
+  rescues.
+- `results/ralphloop/20260530_003531/humanoid100_final_eval_k1024/sonic_projected_native_sonic/`:
+  16 controller-projected native SONIC videos/metrics; 8/16 strict rescues.
+- `results/ralphloop/20260530_003531/humanoid100_final_eval_k1024/sonic_projected_iter2_native_sonic/`,
+  `sonic_projected_iter3_native_sonic/`, and
+  `sonic_projected_iter4_native_sonic/`: iterative controller-projection
+  batches; iterations 2-3 add two strict rescues and iteration 4 saturates.
+- `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/final_100_native_selection_ref_aware_k1024_projected_iter4.csv`:
+  experimental controller-projection table; 100/100 reference-aware no-fall and
+  94/100 strict tracking.
+- `results/humanoid100_final_eval/`: current final 100-prompt proxy evaluation
+  package. Contains `final_metrics.csv`, `summary.csv`, physical-risk plots,
+  approximate SONIC tracking over supported and all proxy references, and the
+  final selector package.
+- `results/humanoid100_final_eval/before_after_overlay_videos/`: newest all-100
+  video review folder. Contains 100 side-by-side MP4s. Left panel is K=1
+  MotionBricks baseline; right panel is the selected verifier/repair result.
+  Red translucent robot is the reference ghost and solid robot is the
+  MuJoCo/SONIC physics rollout.
+- `results/humanoid100_final_eval/final_100_selected_overlay_videos/`: 100
+  final selected MP4s, one per Humanoid100 prompt.
+- `results/humanoid100_final_eval/k1_baseline_overlay_videos/`: 100 baseline
+  K=1 MP4s, one per Humanoid100 prompt.
+- `results/humanoid100_final_eval/before_after_overlay_contact_sheet.jpg` and
+  `results/humanoid100_final_eval/final_100_selected_overlay_contact_sheet.jpg`:
+  quick visual indexes for all 100 prompts.
+- `results/humanoid100_final_eval/final_selector/`: current best inspection
+  folder. Contains `selected_methods.csv`, `selector_summary.csv`,
+  `final_selector_summary.png`, `representative_contact_sheet.jpg`, and
+  27 representative SONIC rollout MP4s under `representative_videos/`.
+- `results/dual_track/latest/`: active MotionBricks/Kimodo status report.
+  Contains `dual_track_status.md`, `kimodo_status.json`,
+  `motionbricks_dual_track_summary.csv`, `motionbricks_k_scaling.png`, and
+  `motionbricks_sonic_survival_scaling.png`.
+- `results/kimodo_zero_text_smoke/` and
+  `results/kimodo_zero_text_smoke_eval/`: negative-control Kimodo export smoke.
+  This proves the G1 checkpoint/export path runs locally, but it is not a valid
+  prompt-following method and fails the physical verifier.
+- `results/kimodo_g1_examples_qpos/` and
+  `results/kimodo_g1_examples_eval/`: official bundled Kimodo-G1 examples
+  converted to qpos and evaluated with the same verifier stack. Includes
+  `sonic_videos_cuda/` and `sonic_videos_cuda_contact_sheet.jpg`.
+- `results/humanoid100_motionbricks_experiment/`: fresh 100-row MotionBricks
+  proxy generation run, with K=1 and K=8 qpos outputs and videos.
+- `results/humanoid100_repaired_retimed/`: second-stage retiming/smoothing
+  repair run, with repaired qpos outputs and videos.
 
 - `results/motionspec_predicates.csv`
 - `results/motionspec_summary.csv`
@@ -110,6 +223,74 @@ Generated outputs live under ignored `results/`:
 - `results/current_validated/` local pointer hub for the latest usable results
 
 ## Latest Numeric Snapshot
+
+Dual-track update, 2026-05-30:
+
+| Track | Current status |
+|---|---|
+| MotionBricks best completed K sweep | K=256, physical pass 76/100, approximate SONIC no-fall 17/100, mean survival 2.786 s |
+| MotionBricks larger K sweep | K512/K1024 did not improve controller acceptance beyond roughly 16 no-fall clips |
+| Kimodo-G1 setup | Repo, venv, CLI, and G1-RP checkpoint cache are present |
+| Kimodo blocker | Missing Hugging Face token/access for gated Llama/LLM2Vec text encoder |
+| Kimodo zero-text negative control | 0/1 physical pass, mean risk 280.782 |
+| Bundled Kimodo-G1 demo sanity set | 2/8 physical pass, 3/8 approximate SONIC no-fall, 3.41 s mean survival |
+| Bundled Kimodo-G1 gain sweep | best 3/8 no-fall, best mean survival 3.555 s |
+| MotionBricks supported-subset gain sweep | best 7/22 no-fall, best mean survival 3.509 s; no tested gain improved no-fall |
+| MotionBricks supported-subset native SONIC | 16/22 no-fall, 14/22 strict pass, mean joint RMSE 0.165 |
+| MotionBricks all-100 selected native SONIC | 76/100 no-fall, 66/100 strict pass, mean joint RMSE 0.168 |
+| MotionBricks failed-prompt native variant rescue | rescues 8/24 failed prompts; projected 84/100 no-fall, 74/100 strict pass |
+
+Interpretation: MotionBricks is now credibly useful as a real-time proposal
+generator plus verifier for a broad upright/proxy capability envelope. It still
+does not support arbitrary language-conditioned motion generation or solved
+floor/acrobatic execution. Kimodo is prepared as the higher-quality generation
+track once gated text-encoder access is available. The bundled Kimodo demo
+sanity set confirms the evaluator can ingest native Kimodo qpos, but also shows
+generation quality and robot execution should remain separate claims.
+
+The supported-subset gain-sweep videos and contact sheet are in
+`results/ralphloop/20260529_191342/humanoid100_final_eval_k256/supported_sonic_gain_sweep/`.
+Those videos should be treated as negative/diagnostic evidence, not a final
+success reel.
+
+The native supported-subset videos are in
+`results/ralphloop/20260529_191342/humanoid100_final_eval_k256/supported_native_sonic_release/`.
+These are stronger positive evidence than the approximate bridge videos, but
+they cover only 22 semantically supported selections, not the full 100-prompt
+suite.
+
+The all-100 selected-reference native run is in
+`results/ralphloop/20260529_191342/humanoid100_final_eval_k256/all100_native_sonic_release/`.
+Use `humanoid100_native_analysis.md` and `humanoid100_native_by_category.csv`
+for the category-level story.
+
+The failed-prompt variant rescue run is in
+`results/ralphloop/20260529_191342/humanoid100_final_eval_k256/failed_prompt_native_variant_sweep/`.
+Use `native_variant_rescue_analysis.md` for the headroom story.
+
+Final 100-prompt proxy benchmark with corrected approximate SONIC
+initialization (`--init_reference_pose`, zero initial qvel):
+
+| Selector | Mean Risk | Physical Pass | No Fall in Approx. SONIC | Mean Approx. SONIC |
+|---|---:|---:|---:|---:|
+| K=1 first generation | 36.81 | 63/100 | 11/100 | 2.266 s |
+| K=8 best-of-K | 19.06 | 83/100 | 14/100 | 2.279 s |
+| repaired retiming/smoothing | 14.89 | 84/100 | 16/100 | 2.677 s |
+| risk-verifier selector | 14.49 | 86/100 | 16/100 | 2.684 s |
+| SONIC-verifier selector | 20.00 | 76/100 | 16/100 | 2.914 s |
+
+Interpretation: this is the current final method package. It supports a
+MoVer-style inference-time verification and repair claim. It does not support a
+claim of true MotionBricks fine-tuning, arbitrary text prompt success, or solved
+controller execution. 78/100 rows remain forced nearest-mode semantic proxies.
+
+Latest all-100 video validation:
+
+- `final_100_selected_overlay_videos/`: 100/100 MP4s readable, 640x480.
+- `k1_baseline_overlay_videos/`: 100/100 MP4s readable, 640x480.
+- `before_after_overlay_videos/`: 100/100 MP4s readable, 1280x480.
+- Initialization audit: max initial qpos error `0.0`, max initial qvel norm
+  `0.0`, and `init_reference_pose=True` for all final and baseline videos.
 
 Existing 105 paired K=1/K=8 identities:
 
@@ -263,22 +444,23 @@ Native SONIC release-validation snapshot:
 
 ## Next Actions
 
-1. Recalibrate thresholds for frame-0/root-height failures separately from
-   mid-trajectory falls.
-2. Build a human/VLM visual-review rubric over the native release videos.
-3. Keep low-posture/crawling as rejected or separate-controller categories.
-4. Investigate whether arbitrary-prompt generation can be accessed or whether
-   the 100-prompt suite must be evaluated through another generator/control
-   source.
-5. If rerunning prospective native selection, use `--order mode_interleaved` so
-   partial results are not selector-block or mode-block biased.
-6. Human-review the broad13 diagnostic videos and choose final presentation
-   clips from `results/current_validated/`.
-7. Treat crawling/low-posture as a separate unsolved controller/generator
-   problem, not as part of the current upright acceptance claim.
-8. Build and test a hybrid learned selector: hard-reject unsupported
-   low-posture/crawling for the current claim, apply root/contact sanity gates,
-   then rank remaining candidates by the learned native-acceptance ensemble.
-9. Add an explicit root-drift or idle-position sanity term to the hybrid
-   ranking; the current learned score can select visually acceptable idle clips
-   that fail strict root XY drift.
+1. Use the corrected reference-aware fall metric for all current SONIC
+   survival claims. Current all-100 native selection table:
+   `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/final_100_native_selection_ref_aware.csv`.
+   Repeat-conservative headline is 100/100 reference-aware no-fall and 74/100
+   strict tracking.
+2. Do not claim 100/100 semantic or tracking accuracy. The non-strict set is
+   concentrated in floor/low-posture and athletic/acrobatic prompts; these
+   survive under the corrected fall metric but still have high pose or root
+   error.
+3. Deep native SONIC retry completed under
+   `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/deep_failure_native_sonic/`.
+   It adds one strict rescue (`hrb_096_sprawl_recovery_deep02_k0008`) in the
+   first batch rollout, but that clip did not repeat as strict in the final
+   contact/camera diagnostic render. Treat deep retry as exploratory evidence,
+   not as the repeat-conservative headline.
+4. Render final diagnostic videos with `--contact_markers --camera_track` for a
+   small set of strict successes, survival-only low-posture cases, and remaining
+   hard acrobatic cases.
+5. Build a human/VLM visual-review rubric over the final native videos before
+   using any “accurate” wording in slides or paper.

@@ -167,9 +167,13 @@ def write_rows(path: Path, rows: list[dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
         return
-    fieldnames = list(rows[0].keys())
+    fieldnames: list[str] = []
+    for row in rows:
+        for key in row:
+            if key not in fieldnames:
+                fieldnames.append(key)
     with path.open("w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -225,10 +229,13 @@ def main() -> None:
     )
     parser.add_argument("--max_hours", type=float, default=8.0)
     parser.add_argument("--motions", nargs="*", default=[])
+    parser.add_argument("--motions_file", type=Path, default=None, help="Optional newline-delimited motion list.")
     parser.add_argument("--width", type=int, default=960)
     parser.add_argument("--height", type=int, default=540)
     parser.add_argument("--release_settle", type=float, default=1.0)
     parser.add_argument("--startup_timeout", type=float, default=90.0)
+    parser.add_argument("--contact_markers", action="store_true")
+    parser.add_argument("--camera_track", action="store_true")
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
 
@@ -238,7 +245,16 @@ def main() -> None:
     args.out_dir.mkdir(parents=True, exist_ok=True)
     summaries_dir.mkdir(parents=True, exist_ok=True)
 
-    if args.motions:
+    file_motions: list[str] = []
+    if args.motions_file is not None:
+        file_motions = [
+            line.strip()
+            for line in args.motions_file.read_text().splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+    if file_motions:
+        candidates = file_motions[: args.limit]
+    elif args.motions:
         candidates = args.motions[: args.limit]
     elif args.strategy == "all":
         candidates = build_all(args.reference_root, args.limit)
@@ -278,6 +294,24 @@ def main() -> None:
             motion = str(row.get("motion", ""))
             row["mode"] = parse_mode(motion)
             row["category"] = category(motion)
+    recorded_names = {str(r["motion"]) for r in batch_rows if r.get("motion")}
+    if args.resume:
+        for i, motion in enumerate(candidates, start=1):
+            if motion in recorded_names:
+                continue
+            summary_csv = summaries_dir / f"{motion}.csv"
+            if not summary_csv.exists():
+                continue
+            row = dict(read_one_summary(summary_csv))
+            row["status"] = "completed"
+            row["index"] = i
+            row["mode"] = parse_mode(motion)
+            row["category"] = category(motion)
+            row["attempt_seconds"] = ""
+            batch_rows.append(row)
+            recorded_names.add(motion)
+        if batch_rows:
+            write_rows(batch_csv, batch_rows)
     completed_names = {str(r["motion"]) for r in batch_rows if r.get("status") == "completed"}
 
     for i, motion in enumerate(candidates, start=1):
@@ -312,6 +346,10 @@ def main() -> None:
             "--startup_timeout",
             str(args.startup_timeout),
         ]
+        if args.contact_markers:
+            cmd.append("--contact_markers")
+        if args.camera_track:
+            cmd.append("--camera_track")
         env = os.environ.copy()
         env["MUJOCO_GL"] = env.get("MUJOCO_GL", "egl")
         print(f"[batch] run {i}/{len(candidates)} {motion}")

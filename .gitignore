@@ -3,6 +3,12 @@ data/motionbricks/
 data/candidate_audit/
 data/prospective_native_selection/
 data/prospective_native_selection_smoke/
+data/deep_failure_candidates/
+data/humanoid100_motionbricks/
+data/humanoid100_repaired_retimed/
+data/kimodo_g1_examples_qpos/
+data/kimodo_humanoid100*/
+data/ralphloop_*/
 
 # Derived outputs
 results/

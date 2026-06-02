@@ -51,8 +51,12 @@ def as_float(row: dict[str, str], key: str, default: float = 0.0) -> float:
 
 
 def strict_pass(row: dict[str, str]) -> bool:
+    if row.get("ref_aware_fell") not in ("", None):
+        no_fall = row.get("ref_aware_fell") == "False"
+    else:
+        no_fall = row.get("fell") == "False"
     return (
-        row.get("fell") == "False"
+        no_fall
         and as_float(row, "mean_joint_rmse", 999.0) <= 0.20
         and as_float(row, "mean_root_xy_error", 999.0) <= 1.5
     )
@@ -152,6 +156,13 @@ def audit_video(video: Path, crop_top: int, every_frame: bool) -> dict[str, obje
     sep_px = [float(row["sep"]) for row in both]
     actual_aspect = [float(row["red"]["h"]) / max(float(row["red"]["w"]), 1.0) for row in rows if row["red"]]
     ref_aspect = [float(row["white"]["h"]) / max(float(row["white"]["w"]), 1.0) for row in rows if row["white"]]
+    flat_mismatch = []
+    for row in rows:
+        if row["red"] is None or row["white"] is None:
+            continue
+        actual_ratio = float(row["red"]["h"]) / max(float(row["red"]["w"]), 1.0)
+        ref_ratio = float(row["white"]["h"]) / max(float(row["white"]["w"]), 1.0)
+        flat_mismatch.append(actual_ratio < 1.05 and ref_ratio >= 1.05)
 
     jumps = []
     prev = None
@@ -171,6 +182,7 @@ def audit_video(video: Path, crop_top: int, every_frame: bool) -> dict[str, obje
     very_large_sep_count = sum(value > 2.20 for value in sep_body)
     actual_flat_count = sum(value < 1.05 for value in actual_aspect)
     ref_flat_count = sum(value < 1.05 for value in ref_aspect)
+    flat_mismatch_count = sum(flat_mismatch)
     max_jump = max(jumps) if jumps else 0.0
     jump_thresh = max(38.0, 0.060 * diag)
     jump_count = sum(value > jump_thresh for value in jumps)
@@ -181,6 +193,7 @@ def audit_video(video: Path, crop_top: int, every_frame: bool) -> dict[str, obje
     very_large_sep_pct = pct(very_large_sep_count)
     actual_flat_pct = pct(actual_flat_count)
     ref_flat_pct = pct(ref_flat_count)
+    actual_flat_mismatch_pct = 100.0 * flat_mismatch_count / max(len(flat_mismatch), 1)
     jump_pct = 100.0 * jump_count / max(len(jumps), 1)
 
     fail_reasons = []
@@ -191,7 +204,7 @@ def audit_video(video: Path, crop_top: int, every_frame: bool) -> dict[str, obje
         fail_reasons.append("reference_missing")
     if very_large_sep_pct > 20.0:
         fail_reasons.append("very_large_visual_separation")
-    if actual_flat_pct > 20.0:
+    if actual_flat_mismatch_pct > 20.0:
         fail_reasons.append("actual_flat_or_fallen")
     if jump_pct > 5.0 or max_jump > 120.0:
         fail_reasons.append("actual_visual_jump")
@@ -220,6 +233,7 @@ def audit_video(video: Path, crop_top: int, every_frame: bool) -> dict[str, obje
         "very_large_sep_pct": very_large_sep_pct,
         "actual_flat_pct": actual_flat_pct,
         "reference_flat_pct": ref_flat_pct,
+        "actual_flat_mismatch_pct": actual_flat_mismatch_pct,
         "actual_jump_pct": jump_pct,
         "max_actual_jump_px": max_jump,
     }

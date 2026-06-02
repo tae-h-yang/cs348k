@@ -1,30 +1,20 @@
 \begin{thebibliography}{1}
 
-\bibitem{smap}
-Zhe Li et~al.
-\newblock Smap: Self-supervised motion adaptation for physically plausible
-  humanoid whole-body control, 2025.
-
 \bibitem{sonic}
-Zhengyi Luo et~al.
+Zhengyi Luo, Ye~Yuan, Tingwu Wang, Chenran Li, Sirui Chen, Fernando
+  Casta{\~n}eda, Zi-Ang Cao, Jiefeng Li, David Minor, Qingwei Ben, Xingye Da,
+  Runyu Ding, Cyrus Hogg, Lina Song, Edy Lim, Eugene Jeong, Tairan He, Haoru
+  Xue, Wenli Xiao, Zi~Wang, Simon Yuen, Jan Kautz, Yan Chang, Umar Iqbal, Linxi
+  Fan, and Yuke Zhu.
 \newblock Sonic: Supersizing motion tracking for natural humanoid whole-body
   control, 2025.
 
-\bibitem{gmt}
-Junjie Wang et~al.
-\newblock Gmt: General motion tracking for humanoid whole-body control, 2025.
-
-\bibitem{motionbricks}
-Tingwu Wang, Olivier Dionne, Michael De~Ruyter, David Minor, Davis Rempe,
-  Kaifeng Zhao, Mathis Petrovich, Ye~Yuan, Chenran Li, Zhengyi Luo, Brian
-  Robison, Xavier Blackwell, Bernardo Antoniazzi, Xue~Bin Peng, Yuke Zhu, and
-  Simon Yuen.
-\newblock Motionbricks: Scalable real-time motions with modular latent
-  generative model and smart primitives, 2026.
-
-\bibitem{rlpf}
-Junpeng Yue et~al.
-\newblock Rl from physical feedback: Aligning large motion models with humanoid
-  control, 2025.
+\bibitem{kimodo}
+Davis Rempe, Mathis Petrovich, Ye~Yuan, Haotian Zhang, Xue~Bin Peng, Yifeng
+  Jiang, Tingwu Wang, Umar Iqbal, David Minor, Michael de~Ruyter, Jiefeng Li,
+  Chen Tessler, Edy Lim, Eugene Jeong, Sam Wu, Ehsan Hassani, Michael Huang,
+  Jin-Bey Yu, Chaeyeon Chung, Lina Song, Olivier Dionne, Jan Kautz, Simon Yuen,
+  and Sanja Fidler.
+\newblock Kimodo: Scaling controllable human motion generation, 2026.
 
 \end{thebibliography}

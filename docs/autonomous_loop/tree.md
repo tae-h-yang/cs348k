@@ -15,27 +15,39 @@ docs/
     ├── benchmark_spec.md
     ├── blockers.md
     ├── candidate_methods.md
+    ├── dual_track_kimodo_motionbricks_2026-05-30.md
     ├── evaluation_protocol.md
     ├── evidence_log.md
     ├── experiment_queue.md
     ├── humanoid_robotics_100_prompts.md
     ├── long_run_protocol.md
+    ├── method_review_repair_2026-05-28.md
     ├── phd_student_role.md
     ├── problem_definition.md
+    ├── ralphloop.md
     ├── research_notes.md
     ├── reviewer_loop.md
     ├── reviewer_reports.md
     ├── run_journal.md
+    ├── sports_acrobatics_stress_prompts.md
     └── state_checkpoint.md
 
 configs/
 ├── prompt_suite_105.csv
-└── humanoid_robotics_100_prompts.csv
+├── humanoid_robotics_100_prompts.csv
+└── sports_acrobatics_stress_prompts.csv
 
 scripts/
 ├── build_prompt_suite.py
 ├── build_humanoid_robotics_prompt_suite.py
+├── build_sports_acrobatics_prompt_suite.py
+├── evaluate_humanoid_100_prompts.py
 ├── evaluate_prompt_alignment.py
+├── run_humanoid100_motionbricks_experiment.py
+├── repair_humanoid100_references.py
+├── evaluate_humanoid100_final.py
+├── export_humanoid100_sonic_references.py
+├── plot_humanoid100_sonic_supported.py
 ├── evaluate_contact_quality.py
 ├── evaluate_motionspec.py
 ├── plot_motionspec_dashboard.py
@@ -46,6 +58,10 @@ scripts/
 ├── export_learned_acceptance_selection.py
 ├── analyze_learned_acceptance_rollout.py
 ├── select_hybrid_acceptance_candidates.py
+├── analyze_dual_track_motion_generation.py
+├── dual_track_kimodo_motionbricks_loop.sh
+├── run_kimodo_humanoid100_experiment.py
+├── evaluate_kimodo_humanoid100.py
 ├── audit_sonic_reference_export.py
 ├── analyze_sonic_reference_sanity.py
 ├── render_prospective_comparison_sheets.py
@@ -56,6 +72,11 @@ scripts/
 ├── select_visual_audit_clips.py
 ├── render_visual_audit_contact_sheet.py
 ├── render_visual_audit_videos.py
+├── render_selected_overlay_videos.py
+├── stitch_humanoid100_before_after_videos.py
+├── make_humanoid100_video_contact_sheet.py
+├── launch_ralphloop.py
+├── ralphloop.sh
 ├── longrun_motion_curation.sh
 ├── longrun_neural_critic_sweep.sh
 └── evaluate_sonic_policy_mujoco.py
@@ -79,6 +100,77 @@ results/  (ignored, regenerated)
 ├── prompt_alignment.csv
 ├── contact_quality.csv
 ├── sonic_policy_mujoco_tracking_210_fixed.csv
+├── humanoid100_eval/
+│   ├── README.md
+│   ├── humanoid100_eval.csv
+│   └── videos/*.mp4
+├── humanoid100_full_proxy_eval/
+│   ├── README.md
+│   ├── humanoid100_eval.csv
+│   └── videos/*.mp4
+├── humanoid100_motionbricks_experiment/
+│   ├── README.md
+│   ├── humanoid100_motionbricks_results.csv
+│   ├── category_summary.csv
+│   └── videos/*.mp4
+├── humanoid100_repaired_retimed/
+│   ├── README.md
+│   ├── repair_summary.csv
+│   └── videos/*.mp4
+├── humanoid100_final_eval/
+│   ├── README.md
+│   ├── final_metrics.csv
+│   ├── summary.csv
+│   ├── method_summary_bars.png
+│   ├── risk_by_category.png
+│   ├── paired_risk_scatter.png
+│   ├── sonic_supported_tracking.csv
+│   ├── sonic_supported_summary.csv
+│   ├── sonic_supported_summary.png
+│   ├── sonic_all_tracking.csv
+│   ├── sonic_all_summary.csv
+│   ├── sonic_all_summary.png
+│   ├── sonic_references_supported/
+│   ├── sonic_references_all/
+│   ├── sonic_supported_rollouts/*.npz
+│   ├── sonic_supported_videos/*.mp4
+│   ├── final_selector_initref/
+│   │   ├── README.md
+│   │   ├── joined_method_metrics.csv
+│   │   ├── selected_methods.csv
+│   │   ├── selector_summary.csv
+│   │   └── final_selector_summary.png
+│   ├── final_100_selected_rollouts/*.npz
+│   ├── final_100_selected_overlay_videos/*.mp4
+│   ├── final_100_selected_overlay_videos.csv
+│   ├── final_100_selected_overlay_contact_sheet.jpg
+│   ├── k1_baseline_overlay_videos/*.mp4
+│   ├── k1_baseline_overlay_videos.csv
+│   ├── before_after_overlay_videos/*.mp4
+│   ├── before_after_overlay_videos.csv
+│   ├── before_after_overlay_contact_sheet.jpg
+│   └── final_selector/
+│       ├── README.md
+│       ├── joined_method_metrics.csv
+│       ├── selected_methods.csv
+│       ├── selector_summary.csv
+│       ├── representative_cases.csv
+│       ├── final_selector_summary.png
+│       ├── representative_contact_sheet.jpg
+│       ├── representative_rollouts/*.npz
+│       └── representative_videos/*.mp4
+├── dual_track/latest/
+│   ├── dual_track_status.md
+│   ├── kimodo_status.json
+│   ├── motionbricks_dual_track_summary.csv
+│   ├── motionbricks_k_scaling.png
+│   └── motionbricks_sonic_survival_scaling.png
+├── kimodo_zero_text_smoke/
+│   ├── zero_text_qpos.npy
+│   └── zero_text_qpos.csv
+├── kimodo_zero_text_smoke_eval/
+│   ├── summary.csv
+│   └── README.md
 ├── sonic_native_release_all210/20260516_123519/
 ├── prospective_native_selection/20260516_170132/
 │   ├── prospective_native_analysis.md

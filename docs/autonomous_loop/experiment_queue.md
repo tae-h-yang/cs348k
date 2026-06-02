@@ -18,9 +18,23 @@
   choices are made before controller rollout.
 - [ ] Improve native SONIC/reference conversion or replace with another trusted
   G1 tracker.
+- [x] Add a second-stage retiming/smoothing repair baseline for invalid or
+  high-risk generated references.
 - [ ] Run 4-8 hour long-run protocol and review the resulting videos/tables.
 - [ ] Run multi-seed neural critic sweep and decide whether learned critic is
   credible or a negative result.
+- [ ] Run RalphLoop K=32 for up to 12 hours and review whether larger
+  best-of-K plus repair and corrected SONIC improves beyond the current K=8
+  endpoint.
+- [x] Harvest completed RalphLoop K sweeps through K1024 and decide whether
+  the MotionBricks-only track can plausibly reach 80-90% controller success.
+- [x] Set up Kimodo repo, isolated venv, CLI, and Kimodo-G1-RP checkpoint cache.
+- [ ] Configure gated Hugging Face text-encoder access for Kimodo.
+- [ ] Run Kimodo-G1 over the full 100-prompt suite.
+- [ ] Evaluate Kimodo-G1 qpos exports with inverse-dynamics/contact metrics and
+  approximate SONIC rollouts/videos.
+- [ ] Decide final framing: MotionBricks real-time verifier, Kimodo quality
+  generator, or an honest negative result about unsolved controller execution.
 
 ## Candidate Commands
 
@@ -34,8 +48,16 @@ python scripts/render_visual_audit_contact_sheet.py
 MUJOCO_GL=egl python scripts/render_visual_audit_videos.py --limit 12
 bash scripts/longrun_motion_curation.sh
 bash scripts/longrun_neural_critic_sweep.sh
+python scripts/launch_ralphloop.py --hours 12 --k-after 32 --provider cuda
+scripts/dual_track_kimodo_motionbricks_loop.sh
+python scripts/analyze_dual_track_motion_generation.py
+python scripts/run_kimodo_humanoid100_experiment.py --limit 100 --duration 4.0 --diffusion_steps 50
+python scripts/evaluate_kimodo_humanoid100.py --manifest results/kimodo_humanoid100_g1/manifest.csv --out_dir results/kimodo_humanoid100_eval --export_sonic_refs
+python scripts/evaluate_sonic_policy_mujoco.py --reference_dir results/kimodo_humanoid100_eval/sonic_references --out_csv results/kimodo_humanoid100_eval/sonic_tracking.csv --summary_csv results/kimodo_humanoid100_eval/sonic_summary.csv --provider cuda --init_reference_pose --video_dir results/kimodo_humanoid100_eval/sonic_videos
 python scripts/evaluate_prompt_alignment.py
 python scripts/evaluate_contact_quality.py
+python scripts/run_humanoid100_motionbricks_experiment.py --render
+python scripts/repair_humanoid100_references.py --render
 python scripts/analyze_sonic_policy_results.py
 python scripts/run_prospective_native_selection.py --seed_start 7 --n_seeds 8 --K 8
 python scripts/run_sonic_native_release_batch.py --strategy all --order interleaved --limit 320

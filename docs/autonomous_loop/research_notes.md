@@ -15,6 +15,47 @@ Relevance: use the same structure, not the same predicates. For humanoids, the
 DSL should check root motion, timing, posture, limb role, expected contacts, and
 forbidden contacts.
 
+## Kimodo
+
+Kimodo is NVIDIA's 2026 controllable motion diffusion model trained on
+large-scale optical motion capture data. The project page specifically
+positions the G1 model as robotics data generation: Kimodo can generate
+kinematic motion on the Unitree G1 skeleton, export MuJoCo-compatible qpos, and
+feed a GEAR-SONIC tracking demo.
+
+Sources:
+
+- https://research.nvidia.com/labs/sil/projects/kimodo
+- https://research.nvidia.com/labs/dair/publication/kimodo2026/
+- https://research.nvidia.com/labs/sil/projects/kimodo/docs/benchmark/pipeline.html
+- https://research.nvidia.com/labs/sil/projects/kimodo/docs/user_guide/motion_convert.html
+
+Relevance: this is the right higher-quality generator track for the current
+project. It gives the exact artifact we need, `(T, 36)` G1 MuJoCo qpos, without
+pretending MotionBricks' public preview covers arbitrary text prompts. The
+current local blocker is not GPU; it is gated text-encoder access. Once that is
+available, run the identical Humanoid100 verifier and SONIC tracking stack on
+Kimodo outputs.
+
+## Physics-Refinement Direction
+
+Recent motion-generation work increasingly separates kinematic generation from
+physical correction or physical self-scoring. Examples include physics
+projection/refinement methods such as PhysDiff/Morph and inference-time
+physical self-scoring methods such as Proprio.
+
+Sources:
+
+- https://arxiv.org/abs/2212.02500
+- https://openaccess.thecvf.com/content/ICCV2025/papers/Li_Morph_A_Motion-free_Physics_Optimization_Framework_for_Human_Motion_Generation_ICCV_2025_paper.pdf
+- https://arxiv.org/abs/2605.28230
+
+Relevance: if Kimodo or MotionBricks qpos clips still fail controller
+execution, the next credible method is not another ad hoc prompt tweak. It is a
+physics-aware inference loop or learned preference/refinement model trained
+from verifier/controller labels, with semantic constraints kept separate from
+dynamic feasibility constraints.
+
 ## MotionBricks
 
 MotionBricks is a SIGGRAPH 2026 real-time motion generation framework with a

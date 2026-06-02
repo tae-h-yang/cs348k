@@ -1,5 +1,85 @@
 # Run Journal
 
+## 2026-05-30
+
+- Reframed the active project as a dual-track study: MotionBricks for
+  low-latency candidate generation and physics-aware screening, Kimodo-G1 for
+  higher-quality humanoid robot motion generation.
+- Harvested the completed MotionBricks RalphLoop sweeps. The best completed
+  100-prompt MotionBricks result is K=256 with selector
+  `sonic_verified_best`: 76/100 physical metric pass, 17/100 approximate SONIC
+  no-fall, and 2.786 s mean approximate SONIC survival. K512 and K1024 did not
+  materially improve controller acceptance.
+- Set up the official Kimodo repo at `/home/rewardai/repos/kimodo` with an
+  isolated venv at `.venv/kimodo`. The Kimodo-G1-RP-v1 checkpoint is cached
+  locally, but text-conditioned generation remains blocked by missing gated
+  Hugging Face access for the Llama/LLM2Vec text encoder.
+- Added `scripts/run_kimodo_humanoid100_experiment.py` for resumable
+  Kimodo-G1 generation over `configs/humanoid_robotics_100_prompts.csv`, with
+  `(T, 36)` qpos validation and blocked/failed manifest reporting.
+- Added `scripts/evaluate_kimodo_humanoid100.py` to evaluate generated Kimodo
+  qpos clips with the same inverse-dynamics/contact verifier and optional
+  SONIC reference export.
+- Added `scripts/analyze_dual_track_motion_generation.py` and
+  `scripts/dual_track_kimodo_motionbricks_loop.sh`. The loop refreshes the
+  MotionBricks/Kimodo status and, once the token blocker is removed, will
+  generate 100 Kimodo clips, evaluate them, export SONIC references, and run
+  approximate SONIC rollouts/videos.
+- Ran a zero-text Kimodo negative-control smoke test. It proved the G1
+  checkpoint/export path can produce qpos locally, but failed physical
+  evaluation at 0/1 pass with mean risk 280.782, so it is explicitly not a
+  method.
+- Added `docs/autonomous_loop/dual_track_kimodo_motionbricks_2026-05-30.md`
+  to preserve the current decision, evidence, blocker, and next actions.
+- Added `scripts/convert_kimodo_g1_examples.py` and evaluated the bundled
+  official Kimodo-G1 demo motions as a native sanity set while full text
+  generation remains gated. The eight demo clips converted cleanly to `(T, 36)`
+  MuJoCo qpos. Physical verifier result: 2/8 pass, 5/8 repair/rerank, 1/8
+  reject/regenerate. Approximate SONIC result with CUDA library path fixed:
+  3/8 no-fall and 3.41 s mean survival. Videos are under
+  `results/kimodo_g1_examples_eval/sonic_videos_cuda/` and the contact sheet is
+  `results/kimodo_g1_examples_eval/sonic_videos_cuda_contact_sheet.jpg`.
+- Patched `scripts/evaluate_kimodo_humanoid100.py` so `--sonic_ref_dir`
+  defaults to `<out_dir>/sonic_references`, not the global Kimodo eval folder.
+- Patched the dual-track loop to prepend Python-installed CUDA 12 NVIDIA
+  library paths before ONNX Runtime CUDA runs.
+- Swept approximate SONIC bridge gains on the eight bundled Kimodo-G1 examples:
+  12 settings over `kp_scale in {0.6,0.8,1.0,1.2}` and
+  `kd_scale in {0.8,1.0,1.2}`. Best result remained 3/8 no-fall, with mean
+  survival 3.555 s at `kp0.8_kd1.2`. This reduces the chance that the Kimodo
+  demo failures are merely one bad bridge-gain choice.
+- Swept approximate SONIC bridge gains on the semantically supported K256
+  MotionBricks selections. Across 12 settings, the best setting
+  `kp0.7_kd1.0` reached 7/22 no-fall with 3.509 s mean survival, and all tested
+  settings stayed at 7/22 no-fall. This argues against the MotionBricks
+  execution failures being just a bad PD/SONIC bridge gain choice.
+- Rendered the best supported-subset gain setting as 22 MP4s plus a contact
+  sheet under
+  `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/supported_sonic_gain_sweep/`.
+  Visual inspection agrees with the numbers: the robust cases are mostly
+  gentle upright gestures; dynamic locomotion, dance, and low-posture motions
+  still fall.
+- Ran the same 22 semantically supported K256 selections through the native
+  SONIC release path. Native SONIC is much less pessimistic than the approximate
+  bridge: 16/22 no-fall, 14/22 strict pass, mean joint RMSE 0.165. The
+  remaining failures are zombie walk, scared sneak, hand crawl, elbow crawl,
+  bear crawl, and direct traffic. Results and videos are under
+  `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/supported_native_sonic_release/`.
+- Ran the full 100 `sonic_verified_best` selected references through the native
+  SONIC release path. Result: 76/100 no-fall, 66/100 strict pass, mean joint
+  RMSE 0.168. Category-level join shows strong native execution for dynamic
+  locomotion (13/14), balance (12/12), terrain (8/8), loco-manipulation
+  proxies (13/14), manipulation stance (10/12), and communication/safety (8/8),
+  but poor execution for floor/low-posture (3/12) and athletic/acrobatic stress
+  tests (1/8). Results are under
+  `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/all100_native_sonic_release/`.
+- Ran native SONIC over K1/K8/repaired variants for the 24 prompts that failed
+  the first all-100 selected-reference pass. Native verifier selection/retry
+  rescues 8/24 failed prompts, projecting 84/100 no-fall and 74/100 strict
+  pass. Still-failing prompts are concentrated in crawling, floor transitions,
+  rolls, and acrobatic stress tests. Analysis is in
+  `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/failed_prompt_native_variant_sweep/native_variant_rescue_analysis.md`.
+
 ## 2026-05-16
 
 - User rejected the old framing as too toy-like and asked for a broader,
@@ -224,3 +304,189 @@
   but two idle clips fail strict due to root XY drift. The closed-label hybrid
   queue is therefore 74/88 strict, not a new headline win. Added
   `docs/hybrid_acceptance_queue_2026-05-23.md`.
+
+## 2026-05-28
+
+- User asked for one more method review and a better attempt at fixing invalid
+  physical reference motions.
+- Added `scripts/repair_humanoid100_references.py`, a second-stage
+  reference-conditioning baseline. For every selected K=8 qpos from the
+  100-prompt MotionBricks proxy experiment, it validates qpos shape/quaternions,
+  tries identity, retiming at 1.25x/1.5x/2.0x, and Gaussian/Savitzky-Golay
+  joint smoothing variants, then keeps the lowest inverse-dynamics-risk
+  candidate.
+- Ran the repair over all 100 prompt rows with rendering. Results:
+  `results/humanoid100_repaired_retimed/repair_summary.csv`,
+  `results/humanoid100_repaired_retimed/videos/*.mp4`, and
+  `data/humanoid100_repaired_retimed/*.npy`.
+- Quantitative result: mean risk moves from K=1 36.81 to K=8 19.06 to repaired
+  14.89. The repaired reference is better than K=8 in 47/100 rows, worse in
+  0/100 rows, and tied in 53/100 rows.
+- Interpretation: this is the best current lightweight method for physically
+  invalid reference conditioning in this repo. It is still not semantic prompt
+  generation; 78/100 rows remain forced nearest-mode proxies.
+- Added `scripts/evaluate_humanoid100_final.py`, which evaluates K=1, K=8, and
+  repaired references for all 100 prompt rows with inverse-dynamics metrics,
+  contact/support metrics, and separate semantic/presentation pass labels.
+  Output: `results/humanoid100_final_eval/`.
+- Final verifier results: physical-pass counts improve from 63/100 for K=1 to
+  83/100 for K=8 and 84/100 for repaired references. Presentation-pass counts
+  are 15/100, 18/100, and 18/100 because forced nearest-mode proxies are not
+  counted as semantic successes.
+- Added `scripts/export_humanoid100_sonic_references.py` and exported 66 SONIC
+  references for the 22 semantically supported prompt proxies across K=1, K=8,
+  and repaired variants.
+- Ran the approximate MuJoCo SONIC tracker on those 66 references. Mean
+  tracking improves from K=1 2.676 s / 0.312 rad RMSE to K=8 2.769 s /
+  0.282 rad RMSE and repaired 2.996 s / 0.258 rad RMSE. Rendered 9 selected
+  SONIC rollout videos under
+  `results/humanoid100_final_eval/sonic_supported_videos/`.
+- Also exported all 100 prompt identities across K=1, K=8, and repaired
+  references to the approximate SONIC tracker. Repaired references improve mean
+  tracking from K=1 2.232 s / 0.320 rad RMSE and K=8 2.271 s / 0.323 rad RMSE
+  to 2.588 s / 0.288 rad RMSE, but still fall in 86/100 cases.
+- Added `scripts/select_humanoid100_final_method.py`. It builds the final
+  selector table comparing K=1, K=8, repaired, a risk-verifier selector, and a
+  SONIC-verifier selector. Results:
+  `results/humanoid100_final_eval/final_selector/`.
+- Final selector result: `risk_verifier_best` has the best physical-pass count
+  at 86/100 and mean risk 14.49. `sonic_verified_best` has the best tracking
+  time at 2.815 s mean, but a higher mean risk 20.32 and only 75/100 physical
+  pass. This exposes the real tradeoff between cheap physical-risk screening
+  and controller-in-the-loop verification.
+- Rendered 27 representative selector rollout videos and a contact sheet under
+  `results/humanoid100_final_eval/final_selector/representative_videos/` and
+  `representative_contact_sheet.jpg`.
+- Fixed an approximate SONIC initialization credibility issue: `scripts/evaluate_sonic_policy_mujoco.py` can now start the simulated robot exactly from the first reference qpos via `--init_reference_pose`, always zeros initial qvel, and saves `initial_sim_qpos`, `initial_ref_qpos`, and `initial_sim_qvel` into rollout NPZs for audit.
+- Reran corrected all-100 approximate SONIC tracking. Corrected selector means: K=1 2.266 s / 0.301 RMSE, K=8 2.279 s / 0.297 RMSE, repaired 2.677 s / 0.267 RMSE, risk-verifier 2.684 s / 0.271 RMSE, and SONIC-verifier 2.914 s / 0.262 RMSE.
+- Rendered the complete all-100 video set with red translucent reference ghost and solid MuJoCo physics robot: `results/humanoid100_final_eval/final_100_selected_overlay_videos/*.mp4`.
+- Rendered the complete K=1 baseline set with the same visual convention: `results/humanoid100_final_eval/k1_baseline_overlay_videos/*.mp4`.
+- Stitched 100 side-by-side before/after videos, one per prompt: `results/humanoid100_final_eval/before_after_overlay_videos/*.mp4`. Left is K=1 baseline; right is the selected verifier/repair result.
+- Generated all-100 visual indexes: `results/humanoid100_final_eval/before_after_overlay_contact_sheet.jpg` and `results/humanoid100_final_eval/final_100_selected_overlay_contact_sheet.jpg`.
+- Validation: all three MP4 sets have 100/100 readable videos; final and baseline index CSVs report max initial qpos error `0.0`, max initial qvel norm `0.0`, and `init_reference_pose=True` for every row.
+- Added RalphLoop supervisor: `scripts/ralphloop.sh` plus detached launcher `scripts/launch_ralphloop.py` and documentation `docs/autonomous_loop/ralphloop.md`.
+- Started a 12-hour K=32 RalphLoop run at `results/ralphloop/20260529_170525/`. It passed environment checks, confirmed CUDA is visible, passed `pytest` (22 tests), and entered `generate_best_of_k32`.
+- Monitor with `cat results/ralphloop/latest/status.md` and `tail -f results/ralphloop/latest/ralphloop.log`.
+- Fixed ONNXRuntime GPU execution. `onnxruntime-gpu` exposed CUDA provider after reinstall, but session creation needed CUDA 12 runtime libraries. Installed CUDA 12 NVIDIA Python wheels and added `scripts/python_nvidia_lib_paths.py`; `ralphloop.sh`, `launch_ralphloop.py`, and `ralphloop_agent.py` now export those library paths. Verified SONIC encoder/decoder sessions load on `CUDAExecutionProvider`.
+- Killed the earlier CPU-backed/partial RalphLoop and relaunched a fresh K=32 run at `results/ralphloop/20260529_172911/` with CUDA ONNXRuntime enabled.
+- Added and launched `scripts/ralphloop_agent.py` as the scripted self-correction monitor. It watches the active run and will write reviewer verdicts and launch a K=64 corrective run if the K=32 result fails the strict acceptance bar within the time budget.
+- User required at least 6 more hours. The prior K=32/K=64 RalphLoop completed quickly and failed strict acceptance. Patched `scripts/ralphloop_agent.py` to keep launching corrective runs by doubling K until `--max-k` instead of stopping after one relaunch.
+- Started a 6-hour extended monitor with `--next-k 128 --max-k 512`. It launched `results/ralphloop/20260529_182242/`, currently running `generate_best_of_k128` with CUDA available.
+- Added `scripts/ralphloop_wakeup_watch.py` and launched it. It polls active RalphLoop processes every 120s, writes `results/ralphloop_wakeup.md` when the run finishes, logs to `results/ralphloop_wakeup.log`, and attempts a desktop notification/terminal bell.
+- Set up a slide-generation workflow under `slides/`: Marp source deck
+  (`slides/deck.md`), custom theme (`slides/theme.css`), Python fallback HTML
+  builder (`scripts/build_slides_html.py`), metrics snapshot updater
+  (`scripts/update_slide_metrics.py`), and one-command build script
+  (`slides/build_slides.sh`).
+- Installed Node.js and `@marp-team/marp-cli` in the active environment.
+  `bash slides/build_slides.sh` now exports
+  `slides/build/deck.html`, `slides/build/deck.marp.html`,
+  `slides/build/deck.pdf`, and `slides/build/deck.pptx`.
+- The Node install disturbed SciPy's compiled package state; repaired the
+  environment by pinning `numpy==1.26.4` and `scipy==1.14.1`. Verified
+  `pytest -q` passes 22/22 and SONIC ONNX sessions still load on
+  `CUDAExecutionProvider`.
+- User requested at least 8 more hours after K=512 if result is not near 80/90/100 no-fall. Patched `scripts/ralphloop_agent.py` so active-process detection includes `resume_ralphloop_latest.sh` and child eval/repair/SONIC jobs, not just `ralphloop.sh`.
+- Replaced the old short monitor with an 8-hour monitor: `python scripts/ralphloop_agent.py --hours 8 --provider cuda --poll-seconds 180 --next-k 1024 --max-k 2048`. It currently sees the active K=512 resume and will wait for it before deciding whether to launch K=1024/2048.
+- Added reference-aware SONIC fall metrics because a fixed root-height
+  threshold incorrectly penalized intentional low-posture references. The
+  recomputed all-100 native SONIC batch is
+  `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/all100_native_sonic_release/batch_summary_ref_aware.csv`:
+  91/100 reference-aware no-fall and 66/100 strict tracking.
+- Recomputed the failed-prompt native variant sweep with the same metric:
+  `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/failed_prompt_native_variant_sweep/batch_summary_ref_aware.csv`.
+  Verifier selection over original plus K1/K8/K9 variants reaches 100/100
+  reference-aware no-fall, but only 74/100 strict tracking before deep retry.
+- Built the final 100-prompt selection table and figure:
+  `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/final_100_native_selection_ref_aware.csv`,
+  `.md`, and `.png`. Repeat-conservative headline: 100/100 survival under a
+  reference-aware fall metric; 74/100 strict tracking; low-posture/acrobatic
+  prompts remain the main non-strict region.
+- Added deep retry tooling for the remaining non-strict/failure region:
+  `scripts/generate_deep_failure_candidates.py`,
+  `scripts/analyze_deep_failure_rescue.py`, and native SONIC rollout under
+  `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/deep_failure_native_sonic/`.
+  The completed 64-candidate deep retry adds one strict rescue in its first
+  rollout, producing an exploratory 75/100 table. The same rescued clip did not
+  repeat as strict in the contact/camera diagnostic render, so the headline
+  table excludes deep candidates and remains 74/100 strict.
+
+## 2026-05-30
+
+- Completed a targeted K1024 rescue pass for the 26 prompts that remained
+  non-strict after the repeat-conservative K1/K8/K9 native selector.
+  Artifacts:
+  `results/ralphloop/20260530_003531/humanoid100_final_eval_k1024/nonstrict_k1024_native_sonic/`.
+- K1024 native selection rescues 10/26 non-strict prompts. Integrated table:
+  `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/final_100_native_selection_ref_aware_k1024_targeted.csv`.
+  Best current headline with caveat: 100/100 reference-aware no-fall and
+  projected 84/100 strict tracking. Repeat-conservative headline remains
+  74/100 strict.
+- Remaining non-strict prompts after K1024 are 16 floor/low-posture or
+  acrobatic-stress motions: hand crawl, elbow crawl, bear crawl, crab walk,
+  kneel/stand transitions, pushup/sit/roll variants, cartwheel/roll/burpee/
+  sprawl/knee-slide/handstand variants.
+- Ran a retiming/smoothing ablation over the 16 remaining failures:
+  `results/ralphloop/20260530_003531/humanoid100_final_eval_k1024/retimed_nonstrict_native_sonic/`.
+  Result: 96 variants, 0/16 new strict rescues. It improves some survival
+  durations and near-miss RMSEs but does not cross the strict gate.
+- Fixed a reference-export correctness issue: generated SONIC references now
+  compute root/body angular velocity from body quaternions instead of writing
+  zeros. Updated `scripts/export_sonic_references.py`,
+  `scripts/generate_retimed_sonic_references.py`, and
+  `scripts/generate_upright_safe_sonic_references.py`; added
+  `scripts/generate_angvel_corrected_sonic_references.py`.
+- Tested angular-velocity-corrected references for the same 16 hard prompts:
+  `results/ralphloop/20260530_003531/humanoid100_final_eval_k1024/angvel_corrected_native_sonic/`.
+  Result: 0/16 new strict rescues; contact/camera videos and
+  `contact_sheet.jpg` were generated for review.
+- Tested a partial upright-safe projection diagnostic:
+  `results/ralphloop/20260530_003531/humanoid100_final_eval_k1024/upright_safe_native_sonic/`.
+  It was stopped after 8 variants because it produced 0 strict rescues and
+  weakens semantics for floor/acrobatic prompts.
+- Current technical conclusion: blind best-of-K sampling helps within SONIC's
+  upright support manifold, but the remaining floor/acrobatic cluster is a
+  contact-mode mismatch. The next credible method is contact/state-conditioned
+  retargeting or policy/generator training for non-foot support, not another
+  scalar-risk sweep.
+- Added `scripts/generate_sonic_projected_references.py`, a
+  controller-manifold projection baseline. For each remaining hard prompt it
+  extracts the actual native SONIC MuJoCo qpos from the first rollout,
+  re-exports that trajectory as a SONIC reference, and reruns native tracking.
+- Controller-projected references are in
+  `results/ralphloop/20260530_003531/humanoid100_final_eval_k1024/sonic_projected_references/`;
+  rerun videos/metrics are in
+  `results/ralphloop/20260530_003531/humanoid100_final_eval_k1024/sonic_projected_native_sonic/`.
+- Result: controller projection rescues 8/16 remaining hard prompts and creates
+  an experimental 92/100 strict table:
+  `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/final_100_native_selection_ref_aware_k1024_projected.csv`.
+  This is the strongest execution baseline, but it is not prompt-preserving by
+  itself; it proves that native SONIC can execute a projected version of many
+  hard motions, while semantic/style fidelity still needs visual or task-level
+  audit.
+- Ran projection iterations 2-4 over the remaining non-strict prompts.
+  Iteration 2 rescues burpee, iteration 3 rescues pushup, and iteration 4 adds
+  no new strict rescues. Final experimental controller-projection table:
+  `results/ralphloop/20260529_191342/humanoid100_final_eval_k256/final_100_native_selection_ref_aware_k1024_projected_iter4.csv`.
+  Current experimental execution result: 100/100 reference-aware no-fall and
+  94/100 strict tracking. Remaining failures are elbow crawl, roll to kneel,
+  forward roll, sprawl recovery, knee slide, and side-roll recovery.
+- After Hugging Face gated Llama access was fixed with a read token, ran the
+  full Kimodo-G1 Humanoid100 pipeline:
+  `results/kimodo_humanoid100_full_kimodo100_full_20260530_200838/`.
+  Generation succeeded for all 100 prompts at 4.0s and 50 diffusion steps.
+  Physics-screen result: 48/100 `physical_pass`. Approximate SONIC tracking
+  with `--init_reference_pose`: 53/100 no-fall, 47/100 fell, mean tracking
+  duration 2.855s, median duration 3.98s, mean RMSE 0.156.
+- Kimodo category breakdown under SONIC:
+  athletic stress 0/8, floor/low-posture 1/12, dynamic locomotion 7/14,
+  terrain/obstacle 7/8, balance/recovery 9/12, manipulation stance 9/12,
+  loco-manipulation 7/14, communication/safety 4/8, dance/expressive 9/12.
+  Interpretation: Kimodo gives strong visual-quality candidates and covers all
+  requested prompt categories, but it does not solve physical executability for
+  G1 under SONIC; low-posture and acrobatic contact modes remain the clearest
+  failure region.
+- Kimodo artifacts: `generation/manifest.csv`, `eval/final_metrics.csv`,
+  `eval/sonic_tracking_cuda.csv`, 100 videos in `eval/sonic_videos_cuda/`,
+  `eval/sonic_videos_cuda_contact_sheet.jpg`, and
+  `eval/kimodo_physical_summary.png`.

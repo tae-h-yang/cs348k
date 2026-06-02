@@ -173,14 +173,14 @@ def build_two_robot_model() -> mujoco.MjModel:
         scene_default.append(default)
     ref_body = ref_robot.find("worldbody").find("body")
     _prepend_names(ref_body, "ref_")
-    ref_body.set("pos", "0 -0.55 0")
+    _replace_attribute(ref_body, "rgba", "0.9 0.15 0.12 0.62")
+    ref_body.set("pos", "0 0 0")
     scene_worldbody.append(ref_body)
 
     actual_robot = etree.parse(str(DEPLOY_ROOT / "g1/g1_29dof_old.xml"))
     actual_body = actual_robot.find("worldbody").find("body")
     _prepend_names(actual_body, "actual_")
-    _replace_attribute(actual_body, "rgba", "0.9 0.15 0.12 0.82")
-    actual_body.set("pos", "0 0.55 0")
+    actual_body.set("pos", "0 0 0")
     scene_worldbody.append(actual_body)
 
     return mujoco.MjModel.from_xml_string(etree.tostring(main_scene, pretty_print=True, encoding="unicode"))
@@ -236,6 +236,33 @@ def align_root_xy(qpos: np.ndarray, side_y: float, mode: str) -> np.ndarray:
     return aligned
 
 
+def ground_align_sequence_z(qpos: np.ndarray) -> np.ndarray:
+    """Align a rendered qpos sequence to the floor in the render model.
+
+    Native SONIC simulator logs and the 29-DoF presentation mesh use slightly
+    different root-height conventions. For visualization only, place the lowest
+    ankle/foot collision geometry at z=0 on each rendered frame so the mesh does
+    not appear to float above the floor.
+    """
+    model = mujoco.MjModel.from_xml_path(str(DEPLOY_ROOT / "g1/g1_29dof_old.xml"))
+    data = mujoco.MjData(model)
+    foot_geoms = [
+        gid
+        for gid in range(model.ngeom)
+        if "ankle_roll" in (mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, int(model.geom_bodyid[gid])) or "")
+    ]
+    if not foot_geoms:
+        return qpos
+    aligned = qpos.copy()
+    for i in range(len(aligned)):
+        mujoco.mj_resetData(model, data)
+        data.qpos[:] = aligned[i]
+        mujoco.mj_forward(model, data)
+        min_foot_z = min(float(data.geom_xpos[gid, 2] - model.geom_size[gid, 0]) for gid in foot_geoms)
+        aligned[i, 2] -= min_foot_z
+    return aligned
+
+
 def put_text(frame: np.ndarray, lines: list[str]) -> np.ndarray:
     out = frame.copy()
     pad = 14
@@ -277,7 +304,14 @@ def body_prefix_for_geom(model: mujoco.MjModel, geom_id: int) -> str:
 def add_contact_markers(model: mujoco.MjModel, data: mujoco.MjData, renderer: mujoco.Renderer) -> None:
     for i in range(data.ncon):
         contact = data.contact[i]
-        prefix = body_prefix_for_geom(model, int(contact.geom1)) or body_prefix_for_geom(model, int(contact.geom2))
+        prefix1 = body_prefix_for_geom(model, int(contact.geom1))
+        prefix2 = body_prefix_for_geom(model, int(contact.geom2))
+        if prefix1 and prefix2 and prefix1 != prefix2:
+            # In overlay renders, reference and actual robots occupy the same
+            # scene. Skip artificial robot-vs-robot contacts; keep floor/body
+            # contacts for the reference or the physical robot.
+            continue
+        prefix = prefix1 or prefix2
         if not prefix:
             continue
         if renderer.scene.ngeom >= renderer.scene.maxgeom:
@@ -306,13 +340,20 @@ def render_qpos_video(
     align_mode: str,
     contact_markers: bool = False,
     camera_track: bool = False,
+    no_text_overlay: bool = False,
+    overlay_same_origin: bool = False,
+    ground_align_render: bool = False,
 ) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     n_frames = min(len(ref_qpos), len(actual_qpos))
     if n_frames < 2:
         raise ValueError(f"Not enough frames for {motion_name}: {n_frames}")
-    ref_qpos = align_root_xy(ref_qpos[:n_frames], -0.55, align_mode)
-    actual_qpos = align_root_xy(actual_qpos[:n_frames], 0.55, align_mode)
+    side_offset = 0.0 if overlay_same_origin else 0.55
+    ref_qpos = align_root_xy(ref_qpos[:n_frames], -side_offset, align_mode)
+    actual_qpos = align_root_xy(actual_qpos[:n_frames], side_offset, align_mode)
+    if ground_align_render:
+        ref_qpos = ground_align_sequence_z(ref_qpos)
+        actual_qpos = ground_align_sequence_z(actual_qpos)
 
     model = build_two_robot_model()
     model.vis.global_.offwidth = width
@@ -357,15 +398,16 @@ def render_qpos_video(
                 add_contact_markers(model, data, renderer)
             rgb = renderer.render()
             frame = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-            align_desc = "initial-root aligned" if align_mode == "initial" else "pose-aligned each frame"
-            frame = put_text(
-                frame,
-                [
-                    f"SONIC actual sim qpos | {motion_name}",
-                    f"white/left: MotionBricks reference   red/right: SONIC physics actual   t={i / fps:05.2f}s",
-                    f"{align_desc}; contact dots: green=reference, yellow=actual.",
-                ],
-            )
+            if not no_text_overlay:
+                align_desc = "initial-root aligned" if align_mode == "initial" else "pose-aligned each frame"
+                frame = put_text(
+                    frame,
+                    [
+                        f"SONIC actual sim qpos | {motion_name}",
+                        f"red: reference   mesh: SONIC physics actual   t={i / fps:05.2f}s",
+                        f"{align_desc}; contact dots: green=reference, yellow=actual.",
+                    ],
+                )
             writer.write(frame)
     finally:
         writer.release()
@@ -422,11 +464,25 @@ def rollout_metrics(ref_qpos: np.ndarray, actual_qpos: np.ndarray, fps: float) -
     fall_idx = np.where(root_z < 0.55)[0]
     fell = len(fall_idx) > 0
     fall_frame = int(fall_idx[0]) if fell else n
+
+    ref_root_z = ref[:, 2]
+    # Fixed root-height thresholds are useful for upright motions but unfair to
+    # intentional low-posture references such as crawls, rolls, and pushups.
+    # This threshold follows the lower envelope of the reference while keeping a
+    # small hard floor to catch simulator collapses through the ground.
+    ref_low_threshold = max(0.10, min(0.55, float(np.percentile(ref_root_z, 5)) - 0.10))
+    ref_aware_fall_idx = np.where(root_z < ref_low_threshold)[0]
+    ref_aware_fell = len(ref_aware_fall_idx) > 0
+    ref_aware_fall_frame = int(ref_aware_fall_idx[0]) if ref_aware_fell else n
     return {
         "frames": int(n),
         "duration_s": float(n / fps),
         "fell": bool(fell),
         "fall_time_s": float(fall_frame / fps),
+        "ref_aware_fell": bool(ref_aware_fell),
+        "ref_aware_fall_time_s": float(ref_aware_fall_frame / fps),
+        "ref_root_z_p05": float(np.percentile(ref_root_z, 5)),
+        "ref_aware_root_z_threshold": float(ref_low_threshold),
         "min_root_z": float(np.min(root_z)),
         "mean_joint_rmse": float(np.sqrt(np.mean((actual[:, 7:] - ref[:, 7:]) ** 2))),
         "mean_root_xy_error": float(np.mean(np.linalg.norm(actual[:, :2] - ref[:, :2], axis=1))),
@@ -572,6 +628,9 @@ def run_one(job: MotionJob, out_dir: Path, args: argparse.Namespace) -> tuple[Pa
         align_mode=args.align_mode,
         contact_markers=args.contact_markers,
         camera_track=args.camera_track,
+        no_text_overlay=args.no_text_overlay,
+        overlay_same_origin=args.overlay_same_origin,
+        ground_align_render=args.ground_align_render,
     )
     metrics = rollout_metrics(ref_render, actual_render, render_fps)
     metrics.update(
@@ -608,6 +667,9 @@ def main() -> None:
     parser.add_argument("--align_mode", choices=["initial", "per_frame"], default="initial")
     parser.add_argument("--contact_markers", action="store_true")
     parser.add_argument("--camera_track", action="store_true")
+    parser.add_argument("--no_text_overlay", action="store_true", help="Render clean videos with no text burned into frames.")
+    parser.add_argument("--overlay_same_origin", action="store_true", help="Overlay reference and physics robot at the same root origin instead of side-by-side.")
+    parser.add_argument("--ground_align_render", action="store_true", help="For visualization, align both rendered robots to the floor using foot collision geoms.")
     args = parser.parse_args()
     args.out_dir = args.out_dir.resolve()
     args.reference_root = args.reference_root.resolve()

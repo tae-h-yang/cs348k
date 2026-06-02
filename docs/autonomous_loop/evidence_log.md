@@ -86,6 +86,54 @@
   27 pass, 61 warn, 16 fail. Only 1/76 strict native passes is also a visual
   fail, which gives a much cleaner presentation subset than relying on rollout
   CSVs alone.
+- The full 100-prompt MotionBricks proxy experiment generated fresh K=1 and
+  K=8 qpos clips for every benchmark row, including forced nearest-mode proxies
+  for unsupported prompts. Best-of-K reduces mean inverse-dynamics risk from
+  36.81 to 19.06, improving 80/100 rows, worsening 5/100, and tying 15/100.
+- A new second-stage retiming/smoothing repair over those K=8 selected
+  references reduces mean risk further to 14.89. It improves 47/100 references
+  relative to K=8, worsens 0/100, and leaves 53/100 unchanged. This is evidence
+  that simple reference conditioning can reduce dynamics demand after
+  generation, but only as a feasibility repair.
+- The final 100-row verifier now combines dynamics and contact/support checks.
+  Under the stricter pass definition, physical-pass counts are 63/100 for K=1,
+  83/100 for K=8, and 84/100 for repaired references. Mean contact artifact
+  score also improves from 0.252 to 0.234 to 0.227. Presentation-pass counts
+  remain 15/100, 18/100, and 18/100 because only supported prompt proxies are
+  allowed to count as prompt-valid.
+- Approximate SONIC tracking on the 22 semantically supported prompt proxies
+  gives a controller-side signal in the same direction: K=1 averages 2.676 s /
+  0.312 rad RMSE, K=8 averages 2.769 s / 0.282 rad RMSE, and repaired averages
+  2.996 s / 0.258 rad RMSE. This is not native SONIC certification, but it is a
+  useful qualitative/quantitative tracking stress test for the supported subset.
+- Approximate SONIC tracking on all 100 generated proxy references gives the
+  same broad pattern: K=1 averages 2.232 s / 0.320 rad RMSE, K=8 averages
+  2.271 s / 0.323 rad RMSE, and repaired averages 2.588 s / 0.288 rad RMSE.
+  Falls remain high at 86/100 repaired references, so the controller evidence
+  supports "improved but not solved."
+- A MoVer-style verifier-at-test-time selector can choose the best of K=1,
+  K=8, and repaired under the approximate SONIC metric. This reaches 3.127 s
+  mean tracking on the 22 supported proxies and 2.815 s on all 100 proxy
+  identities. Because it uses SONIC as the selector, report it as an
+  inference-time verification strategy rather than as a learned generator.
+- The final selector package makes the tradeoff explicit. `risk_verifier_best`
+  reaches 86/100 physical pass and mean risk 14.49, while
+  `sonic_verified_best` reaches the best mean tracking time, 2.815 s, but only
+  75/100 physical pass and mean risk 20.32. This supports presenting two
+  operating points: cheap feasibility screening versus expensive
+  controller-verified selection.
+- The approximate SONIC bridge was corrected to start the simulated robot from
+  the first reference pose with zero initial velocity. With that fix, the
+  all-100 corrected selector table reports K=1 at 2.266 s mean tracking,
+  K=8 at 2.279 s, repaired at 2.677 s, risk-verifier at 2.684 s, and
+  SONIC-verifier at 2.914 s. The selector still does not solve execution, but
+  the comparison is no longer confounded by an initial-pose mismatch.
+- All 100 final selected videos and all 100 K=1 baseline videos were rendered
+  from saved corrected rollouts. Index validation shows `0.0` max initial qpos
+  error and `0.0` max initial qvel norm for both final and baseline sets. The
+  review artifacts are `results/humanoid100_final_eval/final_100_selected_overlay_videos/`,
+  `results/humanoid100_final_eval/k1_baseline_overlay_videos/`, and
+  `results/humanoid100_final_eval/before_after_overlay_videos/`.
 
 ## Existing Weak Evidence
 
@@ -139,6 +187,35 @@
 - In the learned prospective rollout, both crawling modes still fail completely:
   0/16 survivals and 0/16 strict passes. This is now a repeated negative result,
   not a one-off artifact.
+- The 100-prompt proxy experiment is not a 100-prompt semantic success result:
+  78/100 prompts are forced nearest-mode proxies because the local MotionBricks
+  preview does not expose arbitrary text-conditioned generation for those
+  behaviors. The repair stage can lower dynamics risk for the proxy motion, but
+  it cannot make a proxy walk/low crawl satisfy a cartwheel, baseball, soccer,
+  or object-manipulation prompt.
+- Retiming changes duration and tempo. It should be reported as a
+  controller-friendly reference-conditioning baseline, not as preserving the
+  original generated motion exactly.
+- The 100 all-prompt overlay videos are still approximate SONIC/MuJoCo bridge
+  videos, not official native SONIC certification. They are useful for
+  visually auditing the red reference ghost versus the solid physics robot and
+  for comparing K=1 against the selected verifier result, but final claims
+  should keep the "improved but not solved" boundary.
+- Latest native K1024-targeted evidence improves the strict native SONIC number
+  to a projected 84/100, with 100/100 reference-aware no-fall. This is the best
+  result, but not a 100/100 strict result and not a prompt-semantic success
+  guarantee.
+- Retiming/smoothing, root angular-velocity correction, and a partial
+  upright-safe projection probe all failed to rescue the remaining 16
+  floor/low-posture and acrobatic prompts. Current evidence says the hard
+  frontier is contact-mode support, not just insufficient sampling.
+- A controller-manifold projection baseline is the first method to move the
+  hard cluster substantially. Exporting the actual native SONIC rollout qpos as
+  a new reference rescues 8/16 remaining hard prompts. Iterating the projection
+  rescues two more prompts and then saturates: projection iterations 1-4 give an
+  experimental 94/100 strict native table with 100/100 reference-aware no-fall.
+  This should be presented as execution distillation/projection, not as pure
+  MotionBricks prompt-faithful generation.
 
 ## Evidence Needed Next
 

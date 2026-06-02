@@ -357,6 +357,8 @@ def rollout_reference(
     save_npz: Path | None = None,
     video_path: Path | None = None,
     start_frame: int | None = None,
+    init_reference_pose: bool = False,
+    disable_early_termination: bool = False,
 ) -> dict[str, object]:
     # In real SONIC deployment, tracking always starts with the robot at DEFAULT
     # standing pose (body_q ≈ 0), NOT at reference frame 0.  start_frame is only
@@ -368,8 +370,14 @@ def rollout_reference(
     mujoco.mj_resetData(model, data)
     data.qpos[:3] = ref.body_pos[0]          # root at reference start position
     data.qpos[3:7] = ref.body_quat[0]        # root orientation from reference
-    data.qpos[7:] = DEFAULT_ANGLES            # joints at DEFAULT (standing pose)
+    if init_reference_pose:
+        data.qpos[7:] = ref.joint_isaac[0][ISAACLAB_TO_MUJOCO]
+    else:
+        data.qpos[7:] = DEFAULT_ANGLES        # joints at DEFAULT (standing pose)
+    data.qvel[:] = 0.0
     mujoco.mj_forward(model, data)
+    initial_qpos = data.qpos.copy()
+    initial_qvel = data.qvel.copy()
 
     substeps = max(1, round(CTRL_DT / model.opt.timestep))
     ctrl_lo = model.actuator_ctrlrange[:, 0]
@@ -421,7 +429,10 @@ def rollout_reference(
         torque_sat.append(float(np.mean((np.abs(tau - ctrl_lo) < 1e-6) | (np.abs(tau - ctrl_hi) < 1e-6))))
         last_action = action
 
-        if not np.isfinite(data.qpos).all() or data.qpos[2] < FALL_HEIGHT:
+        should_stop = not np.isfinite(data.qpos).all()
+        if not disable_early_termination:
+            should_stop = should_stop or data.qpos[2] < FALL_HEIGHT
+        if should_stop:
             fell = True
             fall_frame = local_t + 1
             break
@@ -442,6 +453,10 @@ def rollout_reference(
             fell=fell,
             fall_frame=fall_frame,
             ctrl_dt=CTRL_DT,
+            init_reference_pose=init_reference_pose,
+            initial_sim_qpos=initial_qpos,
+            initial_ref_qpos=ref_arr[0] if len(ref_arr) else data.qpos.copy(),
+            initial_sim_qvel=initial_qvel,
         )
 
     if video_path is not None:
@@ -461,6 +476,7 @@ def rollout_reference(
         "mean_action_norm": float(np.mean(action_norm)) if action_norm else float("nan"),
         "mean_torque_saturation_frac": float(np.mean(torque_sat)) if torque_sat else float("nan"),
         "final_root_z": float(data.qpos[2]),
+        "init_reference_pose": init_reference_pose,
     }
 
 
@@ -546,12 +562,22 @@ def main() -> None:
     parser.add_argument("--kd_scale", type=float, default=1.0)
     parser.add_argument("--save_rollouts_dir", type=Path, default=None)
     parser.add_argument("--save_names", nargs="*", default=[])
+    parser.add_argument("--only_save_names", action="store_true", help="Evaluate only refs listed in --save_names.")
     parser.add_argument("--video_dir", type=Path, default=None, help="Save side-by-side .mp4 videos here")
     parser.add_argument("--video_names", nargs="*", default=[], help="Only render video for these refs (empty=all)")
     parser.add_argument("--start_frame", type=int, default=None, help="Fixed start frame (default: auto best-frame)")
+    parser.add_argument("--init_reference_pose", action="store_true", help="Initialize sim qpos at reference frame 0 with zero velocity.")
+    parser.add_argument(
+        "--disable_early_termination",
+        action="store_true",
+        help="Continue rollout/rendering for the full horizon even if root height drops below the fall threshold.",
+    )
     args = parser.parse_args()
 
     refs = [load_reference(p) for p in sorted(args.reference_dir.iterdir()) if (p / "joint_pos.csv").exists()]
+    if args.only_save_names and args.save_names:
+        wanted = set(args.save_names)
+        refs = [ref for ref in refs if ref.name in wanted]
     if args.limit:
         refs = refs[: args.limit]
     if not refs:
@@ -570,6 +596,8 @@ def main() -> None:
         row = rollout_reference(
             ref, model, encoder, policy, args.max_seconds, args.kp_scale, args.kd_scale,
             save_npz=save_npz, video_path=video_path, start_frame=args.start_frame,
+            init_reference_pose=args.init_reference_pose,
+            disable_early_termination=args.disable_early_termination,
         )
         rows.append(row)
         print(

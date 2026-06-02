@@ -15,6 +15,7 @@ import re
 from pathlib import Path
 
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data" / "guided_ablation_extended"
@@ -66,6 +67,45 @@ def normalize_quat(q: np.ndarray) -> np.ndarray:
     return q / np.maximum(norms, 1e-8)
 
 
+def angular_velocity_from_quat_wxyz(quat_wxyz: np.ndarray, fps: float) -> np.ndarray:
+    """Finite-difference angular velocity from WXYZ quaternions.
+
+    Returns one XYZ angular-velocity triplet per quaternion body.  The reference
+    files accepted by SONIC may contain only the root body or many tracked
+    bodies, so this function preserves that body count.
+    """
+
+    quat = np.asarray(quat_wxyz, dtype=np.float64)
+    if quat.ndim != 2 or quat.shape[1] % 4 != 0:
+        raise ValueError(f"Expected quaternion array with width multiple of 4, got {quat.shape}")
+    n_frames = quat.shape[0]
+    n_bodies = quat.shape[1] // 4
+    if n_frames < 2:
+        return np.zeros((n_frames, n_bodies * 3), dtype=np.float64)
+
+    q = quat.reshape(n_frames, n_bodies, 4).copy()
+    q /= np.linalg.norm(q, axis=2, keepdims=True).clip(1e-8)
+    for i in range(1, n_frames):
+        same = np.sum(q[i - 1] * q[i], axis=1) < 0.0
+        q[i, same] *= -1.0
+
+    rot = Rotation.from_quat(q.reshape(-1, 4)[:, [1, 2, 3, 0]]).as_matrix().reshape(
+        n_frames, n_bodies, 3, 3
+    )
+    out = np.zeros((n_frames, n_bodies, 3), dtype=np.float64)
+    dt = 1.0 / fps
+    for i in range(n_frames):
+        if i == 0:
+            prev_i, next_i, scale = 0, 1, dt
+        elif i == n_frames - 1:
+            prev_i, next_i, scale = n_frames - 2, n_frames - 1, dt
+        else:
+            prev_i, next_i, scale = i - 1, i + 1, 2.0 * dt
+        delta = np.einsum("bij,bjk->bik", np.swapaxes(rot[prev_i], 1, 2), rot[next_i])
+        out[i] = Rotation.from_matrix(delta).as_rotvec() / scale
+    return out.reshape(n_frames, n_bodies * 3)
+
+
 def export_clip(qpos_path: Path, out_dir: Path, source_fps: float, target_fps: float) -> dict[str, object]:
     qpos = np.load(qpos_path).astype(np.float64)
     if qpos.ndim != 2 or qpos.shape[1] != 36 or len(qpos) < 2:
@@ -77,7 +117,7 @@ def export_clip(qpos_path: Path, out_dir: Path, source_fps: float, target_fps: f
     joints_isaac = joints_mujoco[:, MUJOCO_TO_ISAACLAB]
     joint_vel = np.gradient(joints_isaac, 1.0 / target_fps, axis=0)
     body_lin_vel = np.gradient(root_pos, 1.0 / target_fps, axis=0)
-    body_ang_vel = np.zeros_like(body_lin_vel)
+    body_ang_vel = angular_velocity_from_quat_wxyz(root_quat, target_fps)
 
     write_csv(out_dir / "joint_pos.csv", [f"joint_{i}" for i in range(29)], joints_isaac)
     write_csv(out_dir / "joint_vel.csv", [f"joint_vel_{i}" for i in range(29)], joint_vel)

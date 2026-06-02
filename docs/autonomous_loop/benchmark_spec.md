@@ -28,6 +28,24 @@
 - Use for problem definition, future generator testing, and reviewer-facing
   benchmark scope.
 
+### Layer C: Sports/Acrobatics Stress Suite
+
+`configs/sports_acrobatics_stress_prompts.csv`
+
+- 32 distinct high-risk or task-specific prompts spanning cartwheels and other
+  acrobatic inversions, soccer, baseball/softball, basketball, racket sports,
+  martial-arts-style kicks, and sprint starts.
+- This is intentionally separated from the executable 105-row local suite: most
+  prompts require sport/task-conditioned generation, object-conditioned
+  retargeting, or a richer MotionBricks interface before they can be claimed as
+  executable generated motions.
+- Current composition: 26 prompts are marked `__NO__` for the local
+  MotionBricks preview and 6 are marked `__PARTIAL__` with coarse proxy mode
+  hints such as `walk`, `walk_left`, or `walk_happy_dance`.
+- Use for stress-testing future methods and for reviewer-facing scope. Do not
+  report a proxy mode as a solved soccer/baseball/cartwheel behavior unless it
+  passes task-specific event predicates and visual audit.
+
 ## Prompt Schema
 
 - `prompt_id`: stable benchmark ID.
@@ -42,6 +60,10 @@
 - `motionbricks_mode_hint`: closest available mode where one exists.
 - `evaluation_notes`: intended evaluator stack.
 
+Layer C uses the same schema concept but names the group column `domain`
+instead of `category` because each row is a sport/acrobatic domain rather than a
+general robotics behavior class.
+
 ## Required Splits
 
 When the full 100-prompt suite becomes executable:
@@ -51,6 +73,12 @@ When the full 100-prompt suite becomes executable:
 - keep a held-out reviewer set of at least 20 prompts for qualitative videos and
   manual/VLM audit,
 - do not count seed duplicates as new task prompts.
+
+When the sports/acrobatic suite becomes executable, report it separately from
+the 100-prompt robotics suite and include per-domain task-event checks. Examples:
+cartwheel requires hand contact plus lateral inversion and recovery; baseball
+pitch requires a step, overhand arm swing, and follow-through; soccer kick
+requires single-support timing and a directed leg swing.
 
 ## Selector Comparison
 

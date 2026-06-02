@@ -1,295 +1,203 @@
 \documentclass[10pt]{article}
 
-\usepackage[margin=0.78in]{geometry}
+\usepackage[margin=0.85in]{geometry}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{hyperref}
-\usepackage{amsmath}
 \usepackage{enumitem}
-\graphicspath{{../results/}}
+\graphicspath{{../slides/assets/figures/}}
 
-\title{Controller-in-the-Loop Curation of Kinematic Humanoid Motion}
-\author{CS 348K Project}
-\date{May 2026}
+\title{Test-Time Physical Awareness for Generated Humanoid Reference Motions}
+\author{Tae Hoon Yang\\CS 348K: Visual Computing Systems}
+\date{Spring 2026}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-Kinematic humanoid motion generators such as MotionBricks produce diverse
-Unitree G1 reference trajectories, but a kinematically plausible reference is
-not necessarily executable by a physics-based controller. We study this gap as
-an acceptance and curation problem. Given a fixed MotionBricks candidate pool,
-we compute pre-controller diagnostics, evaluate selected references with the
-native SONIC G1 tracking stack, train a trajectory-level qpos acceptance model
-from native rollout labels, and audit rendered videos frame-by-frame from MP4
-pixels. On a broad 13-mode, 104-identity candidate pool, a hand-coded gated
-pre-controller selector improves strict native SONIC pass rate from 70/104 for
-the deterministic baseline to 78/104. A learned temporal qpos classifier
-predicts strict native acceptance better than scalar diagnostics in grouped
-cross-validation (AUC 0.864 versus 0.782 for the best scalar), and its
-prospective all-candidate selections reach 76/104 strict passes. The learned
-selector improves over the deterministic baseline, but does not beat the
-hand-coded gate. Its strongest behavior is abstention: thresholding the learned
-score at 0.5 removes all 16 unsupported crawling identities and keeps 76 strict
-passes over 88 accepted identities. A follow-up hybrid queue closes the missing
-native labels and reaches 74/88 strict accepted identities; all 9 newly
-evaluated hybrid videos pass visual pixel audit, but two idle clips fail strict
-root-drift criteria. The final claim is therefore not that MotionBricks is
-fine-tuned or physically solved. The contribution is an honest systems study:
-native controller labels and visual audits expose failure modes, hand-coded
-gates are currently strongest, and learned acceptance is useful for triage and
-abstention before expensive controller rollout.
+Modern humanoid motion trackers such as SONIC can follow rich whole-body
+reference trajectories in physics, but those trackers still need high-quality
+reference motions. KIMODO makes reference authoring much easier by generating
+Unitree G1 kinematic motions from text prompts and constraints. This project
+studies the interface between those systems: given a generated G1 reference,
+can we detect physical risks, use those risks to rewrite the prompt, regenerate
+better candidates, and then gate the result with a controller rollout?
+
+I built a test-time physical-awareness loop. It evaluates generated references
+with MuJoCo inverse-dynamics/contact diagnostics and a pretrained SONIC
+controller audit. The evaluator emits interpretable failure tags such as high
+torque/root wrench, self-contact, non-foot floor contact, weak support, contact
+artifact, and controller trackability failure. Those tags are passed as
+structured context to GPT-5.5, which rewrites the prompt with a metric-specific
+safety constraint. On the 100-prompt KIMODO benchmark, first-pass references
+pass the physical screen in 48/100 cases, complete the 4-second SONIC rollout
+in 53/100 cases, and pass both gates in 29/100 cases. The final deck reports a
+prompt-repair snapshot where metric-guided rewriting reduces several failure
+tags, including SONIC fall cases from 47 to 20. The contribution is not a
+solved text-to-robot motion generator; it is a concrete evaluation,
+prompt-repair, and acceptance gate for exposing generated-reference brittleness.
 \end{abstract}
 
-\section{Motivation}
+\section{Problem}
 
-MotionBricks is a fast kinematic motion generator with modular latent motion
-primitives and real-time controllability \cite{motionbricks}. Its physical
-awareness limitation is exactly the problem a robotics user sees in practice:
-a generated reference can look plausible in pose space yet exceed controller,
-contact, root-height, or balance limits. Recent humanoid work increasingly
-treats tracking policies and physical feedback as the arbiter of motion quality:
-SONIC scales humanoid motion tracking with large motion data and compute
-\cite{sonic}; GMT and SMAP study broad whole-body tracking/adaptation
-\cite{gmt,smap}; RLPF uses physical feedback to align large motion models with
-humanoid control \cite{rlpf}. Our project asks a smaller question that can be
-tested locally: can we curate a fixed MotionBricks candidate pool into more
-controller-executable references, and can we tell when the selector should
-abstain?
+Humanoid motion control has recently improved because learned policies can be
+trained to track diverse reference motions under physics. SONIC is a strong
+example: it trains a Unitree G1 whole-body controller on over 100M frames / 700
+hours of high-quality human motion \cite{sonic}. At the input level, the
+tracker receives a target trajectory: root pose and joint targets over time.
 
-This framing deliberately avoids an overclaim. We do not fine-tune
-MotionBricks. We do not train a new tracking policy. We do not prove real-robot
-safety. Instead, we make the generator/control gap measurable with native
-SONIC rollouts, learned acceptance prediction, hard gates, and video audits.
+The upstream question is where those references come from. KIMODO generates
+controllable kinematic human and robot motions from text prompts and
+constraints \cite{kimodo}. This makes it a natural source of candidate
+references for robot training and controller testing. However, a kinematic
+reference is not automatically physically executable. It may demand unrealistic
+torques, require impossible support, create self-collisions, drag contacts, or
+destabilize a learned controller.
 
-\section{Pipeline}
+The project question is:
+\begin{quote}
+Can a physical-awareness layer identify risky KIMODO-generated humanoid
+reference motions, and can its failure tags guide useful test-time prompt repair
+before controller execution?
+\end{quote}
 
-\paragraph{Candidate pool.}
-The final broad run uses 13 exposed MotionBricks G1 modes, 8 seeds, and
-stochastic candidate sampling, producing 832 candidates over 104
-\((\mathrm{mode}, \mathrm{seed})\) identities. The modes include idle, upright
-walking/style variants, and hand/elbow crawling stress tests. Each candidate is
-exported as a Unitree G1 qpos trajectory and round-tripped to SONIC reference
-CSVs; the export audit reports max qpos error \(3.33\times 10^{-16}\), so the
-main failures are not explained by a broad joint-order conversion bug.
+\section{System}
 
-\paragraph{Pre-controller diagnostics.}
-For every candidate we compute inverse-dynamics demand, root-height sanity,
-contact artifacts, self-contact, non-foot floor contact, support proxies, foot
-skate, velocity, acceleration, and jerk. These are not final physical proof:
-they are cheap pre-controller triage features.
+The final system is a prompt-refinement loop:
 
-\paragraph{Native controller labels.}
-Selected references are run through the native SONIC G1 release protocol with
-the robot released before tracking. A rollout is counted as \emph{strict} if it
-does not fall, has mean joint RMSE \(\leq 0.20\) rad, and has mean root XY error
-\(\leq 1.5\) m. We report survival separately from strict pass because several
-clips survive but drift too far.
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+Stage & Input & Contribution & Output \\
+\midrule
+Generate & text prompt & KIMODO G1 generation & root + joint trajectory \\
+Evaluate & reference & MuJoCo + SONIC checks & risk flags and rollout metrics \\
+Rewrite & failed metric tag & GPT-5.5 prompt edit & revised prompt \\
+Repeat/gate & new candidate & rescore until budget ends & accepted or flagged clip \\
+\bottomrule
+\end{tabular}
+\end{center}
 
-\paragraph{Learned acceptance model.}
-A temporal qpos CNN is trained on 405 native rollout labels from the broad run.
-Splits are grouped by identity so duplicate selector choices from the same
-mode/seed do not leak across folds. The model predicts strict native acceptance
-from the reference trajectory alone; it is an acceptance model, not a generator.
+Failure tags are intentionally interpretable. High torque/root wrench asks the
+LLM for slower, smoother limb motion; self-contact asks for limbs away from the
+torso; weak support asks for wider stance; trackability failure asks for lower
+speed and amplitude. SONIC is used as a foundation-style tracking evaluator and
+acceptance gate. It is not the optimizer that edits KIMODO.
 
-\paragraph{Visual audit.}
-Numbers are not enough for motion. We rerender native rollouts with camera
-tracking and contact markers, then run a frame-level MP4 audit that segments
-the red actual robot and white reference robot in every frame. The audit flags
-missing bodies, large visual separation, fallen-looking body aspect, and sudden
-visual jumps. We use this as a systematic review aid, not as a replacement for
-human validation.
+\section{Benchmark and Metrics}
+
+The benchmark contains 100 humanoid robotics prompts grouped as locomotion and
+recovery (26), manipulation and loco-manipulation (26), floor/low posture (12),
+dance/expressive motion (12), athletic and terrain stress (16), and
+communication/safety gestures (8). The suite includes walking, shuffling,
+crawling, carrying, panel pressing, gestures, obstacle-style steps, forward
+rolls, cartwheel attempts, jumping, and low-posture motions.
+
+For each generated G1 trajectory, the evaluator computes torque demand relative
+to actuator limits, root force/torque, velocity, acceleration, jerk,
+self-contact, non-foot floor contact, contact artifacts, support-region proxy
+violations, SONIC no-fall, survival time, and joint RMSE.
 
 \section{Results}
 
-\subsection{Hand-coded gating is the current strongest full-coverage selector}
-
-The broad13 native SONIC evaluation completes 405 selected references. The
-main identity-level comparison is:
+\subsection{First-Pass Audit}
 
 \begin{table}[h]
 \centering
-\caption{Broad13 native SONIC strict pass rates.}
-\label{tab:selector}
-\begin{tabular}{lrrrr}
+\caption{First-pass 100-prompt KIMODO audit.}
+\label{tab:audit}
+\begin{tabular}{lrrrrr}
 \toprule
-Selector & All & Upright & Idle & Crawling \\
+Set & Physical pass & SONIC no-fall & Both & Mean sec. & RMSE \\
 \midrule
-Deterministic baseline & 70/104 & 63/80 & 7/8 & 0/16 \\
-Best pre-controller score & 73/104 & -- & -- & -- \\
-Lowest inverse-dynamics risk & 72/104 & -- & -- & -- \\
-Hand-coded gated selector & 78/104 & 71/80 & 7/8 & 0/5 selected \\
-Native oracle over tested choices & 88/104 & -- & -- & -- \\
+All KIMODO refs & 48/100 & 53/100 & 29/100 & 2.855 & 0.156 \\
+Physical-pass subset & 48/48 & 29/48 & 29/48 & 3.293 & 0.170 \\
+Flagged subset & 0/52 & 24/52 & 0/52 & 2.450 & 0.143 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The useful effect is modest but real: hard root/contact gates plus
-pre-controller scoring rescue some brittle upright references. The gap to the
-native oracle shows that better selection is possible, but scalar gates are not
-enough.
-
-\begin{figure}[t]
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.78\linewidth]{prospective_native_selection/20260522_broad13/prospective_native_selector_summary.png}
-\caption{Broad13 selector comparison. The hand-coded gated pre-controller
-selector is the strongest full-coverage result, while the native oracle shows
-remaining headroom.}
-\label{fig:selector}
+\includegraphics[width=0.82\linewidth]{kimodo_audit_summary.png}
+\caption{The physical screen and SONIC audit are related but not equivalent.}
 \end{figure}
 
-\subsection{Learned acceptance predicts better than scalar diagnostics}
+Only 29 of 48 physical-pass references also complete SONIC. Meanwhile, 24 of
+52 flagged references still complete SONIC. This disagreement is a central
+result: reference-level physical checks and controller-level trackability are
+both needed.
 
-The temporal qpos acceptance model reaches grouped cross-validated AUC 0.864
-and average precision 0.917. The best scalar diagnostic is root-z minimum at
-AUC 0.782; pre-controller score reaches AUC 0.752. This supports the idea that
-native acceptability is trajectory-structured, not fully captured by a single
-root/contact/risk scalar.
+\subsection{Failure Tags}
 
 \begin{table}[h]
 \centering
-\caption{Strict native-acceptance prediction on broad13 rollout labels.}
-\label{tab:auc}
+\caption{Failure-tag counts before and after metric-guided prompt repair. Tags
+are non-exclusive.}
+\label{tab:repairtags}
 \begin{tabular}{lrr}
 \toprule
-Model / diagnostic & AUC & Average precision \\
+Failure tag & Before & After \\
 \midrule
-Temporal qpos CNN & 0.864 & 0.917 \\
-Root-z minimum & 0.782 & 0.865 \\
-Low-root frame percentage & 0.768 & 0.849 \\
-Pre-controller score & 0.752 & 0.845 \\
-Contact artifact score & 0.741 & 0.839 \\
-Full inverse-dynamics risk & 0.737 & 0.845 \\
-Torque-limit ratio & 0.719 & 0.832 \\
+SONIC fall & 47 & 20 \\
+Torque limit $>$1x & 48 & 23 \\
+Self-contact $>$8\% & 34 & 10 \\
+Unstable center of mass & 31 & 20 \\
+High root force $>$5 kN & 28 & 9 \\
+Non-foot floor contact & 11 & 4 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.82\linewidth]{native_acceptance_model_20260523_broad13_long/training_auc.png}
-\caption{Grouped cross-validation for the broad13 qpos acceptance model.
-The model is useful for triage, but it is trained on noisy controller labels
-and should not be interpreted as feasibility certification.}
-\label{fig:train}
-\end{figure}
+The representative failure videos in the deck are `forward\_roll' for
+torque/root wrench, `turn\_in\_place' for self-contact, `knee\_slide' for
+non-foot floor contact, `step\_over\_right' for support proxy, `carry\_box' for
+controller trackability, and `happy\_dance' for contact artifact.
 
-\subsection{Learned selection improves over baseline but not over the gate}
+\subsection{Repair Examples}
 
-We score all 832 broad13 candidates with the learned model and export the best
-candidate per identity. Native SONIC evaluates all 104 learned selections:
+The main repair videos show failure-tag-guided prompt edits:
+`forward\_walk' becomes slower and smoother after a trackability flag;
+`wave' adds planted feet and smooth arm motion after torque/tracking flags;
+`split\_squat\_jump' asks for a smaller jump and soft landing after
+support/torque flags; `pushup\_pose' asks for lifted torso clearance;
+`happy\_dance' asks for clean foot placement; and `backward\_recovery' asks for
+a smaller lean and step back.
 
-\begin{table}[h]
-\centering
-\caption{Prospective learned-selector native rollout.}
-\label{tab:learned}
-\begin{tabular}{lrrrr}
-\toprule
-Selector & All strict & Upright strict & Idle strict & Crawling strict \\
-\midrule
-Deterministic baseline & 70/104 & 63/80 & 7/8 & 0/16 \\
-Hand-coded gated selector & 78/104 & 71/80 & 7/8 & 0/5 selected \\
-Learned acceptance selector & 76/104 & 68/80 & 8/8 & 0/16 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\section{Interpretation}
 
-This is not a clean deployment split: the learned model selects from the same
-broad13 candidate pool used to train labels. Of its 104 selected candidates,
-46 had already been native-evaluated in the broad selector study, while 58 were
-newly evaluated here. The newly evaluated subset is 37/58 strict, including
-36/42 upright strict and 0/15 newly evaluated crawling. Thus the learned
-selector is promising, but not a new state-of-the-art result.
+The results support the hypothesis in a bounded way. Generated references have
+measurable physical failure modes; failure tags are useful for prompt
+refinement and curation; SONIC is stricter than kinematic replay; and
+visual/VLM review helps catch obvious behavior mismatch, but it is not a
+complete metric set.
 
-\subsection{Abstention is the strongest learned behavior}
+The boundary slide shows remaining failures: `forward\_roll' for torque/root
+wrench stress, `carry\_box' for controller trackability, and
+`cartwheel\_attempt' for acrobatics. The current method does not solve arbitrary
+text-to-robot motion, robust acrobatics/low-posture tracking, or automatic
+repair for every invalid reference. Stronger results likely require fine-tuning
+or training a motion-level refiner, not only prompt rewriting.
 
-The learned score strongly separates unsupported crawling in this run. A score
-threshold of 0.5 removes all 16 crawling identities and keeps all 76 strict
-passes:
+\section{Limitations and Future Work}
 
-\begin{table}[h]
-\centering
-\caption{Learned-score abstention on the 104 learned selections.}
-\label{tab:abstain}
-\begin{tabular}{rrrrr}
-\toprule
-Min score & Accepted identities & Strict & Falls & Crawling accepted \\
-\midrule
-0.00 & 104 & 76/104 & 22 & 16 \\
-0.50 & 88 & 76/88 & 6 & 0 \\
-0.80 & 88 & 76/88 & 6 & 0 \\
-0.85 & 77 & 65/77 & 6 & 0 \\
-0.90 & 72 & 62/72 & 6 & 0 \\
-\bottomrule
-\end{tabular}
-\end{table}
+GPT-5.5 prompt repair is useful but cannot replace a better motion generator.
+The physical screen is heuristic and simulator-dependent. SONIC rollout is a
+simulation diagnostic, not real hardware validation. Some motions need semantic
+context: floor contact can be correct for crawling and wrong for walking.
+Prompt fidelity is checked qualitatively; there is no full human-study or VLM
+benchmark.
 
-We then build a first all-candidate hybrid queue: reject crawling and low-root
-references, require the root/contact sanity gate, then rank by learned score.
-It accepts 88 identities and rejects 16. After evaluating the 9 selected
-references not already covered by the learned rollout, the closed-label hybrid
-queue reaches 74/88 strict accepted identities: 68/80 upright and 6/8 idle.
-All 9 newly evaluated hybrid videos survive and pass visual audit, but two idle
-clips fail strict because root XY drift exceeds 1.5m. This reveals the next
-missing feature: idle/root-drift sanity must be part of the selector.
+Future work should train a risk-conditioned refiner that learns from failure
+tags and SONIC rollouts, use short controller rollouts or a learned surrogate
+during candidate selection, and improve semantic evaluation so physical
+stability does not hide prompt mismatch.
 
-\subsection{Visual audit prevents metric-only overclaiming}
+\section{Team Responsibilities}
 
-The learned-selector tracked-camera video audit reports 27 visual passes,
-61 warnings, and 16 visual failures over 104 videos. The failures are dominated
-by crawling collapses and a few upright fall/separation cases. Only one native
-strict pass is also a visual fail; we exclude that clip from presentation
-material. The 9 newly evaluated hybrid diagnostic videos have 9/9 visual pass.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.98\linewidth,height=0.42\textheight,keepaspectratio]{prospective_native_selection/20260523_learned_acceptance_eval/native_release/visual_frame_audit_tracked/visual_fail_contact_sheet.jpg}
-\caption{Frame-level visual audit catches failures that numeric tables alone
-would make too easy to hand-wave. Most visual failures are crawling or fall
-cases; the final presentation subset excludes visual-fail strict contradictions.}
-\label{fig:visual}
-\end{figure}
-
-\section{Discussion}
-
-\paragraph{What is submittable.}
-This is defensible as a course final project if framed as controller-in-the-loop
-curation for a fixed kinematic generator. The most robust claim is:
-native SONIC exposes a real kinematic-to-dynamic gap; hard gates improve
-baseline selection; a learned qpos acceptance model predicts controller success
-better than scalar diagnostics and is useful for abstention/triage; visual
-audit is necessary to prevent metric-only mistakes.
-
-\paragraph{What is not submittable as a claim.}
-The project does not show MotionBricks fine-tuning, guaranteed physical
-feasibility, solved crawling, or superiority of the learned selector over the
-hand-coded gate. The learned rollout is partly same-pool, and the hybrid queue
-is diagnostic rather than a final win.
-
-\paragraph{Next research direction.}
-The strongest pivot is not another heuristic. It is physical-feedback training:
-use native tracker outcomes and visual/contact failures to update either the
-generator distribution or a learned proposer, similar in spirit to
-controller-feedback alignment methods \cite{rlpf}. Locally, the next small step
-is to add root-drift/idle sanity to the hybrid selector and rerun a fresh
-candidate pool. At research scale, the right experiment is to train or adapt a
-tracking policy or generator with controller outcomes in the loop.
-
-\section{Artifacts}
-
-\begin{itemize}[leftmargin=*]
-\item \texttt{docs/prospective\_broad13\_2026-05-22.md}
-\item \texttt{docs/native\_acceptance\_broad13\_2026-05-23.md}
-\item \texttt{docs/learned\_acceptance\_prospective\_2026-05-23.md}
-\item \texttt{docs/hybrid\_acceptance\_queue\_2026-05-23.md}
-\item \texttt{results/prospective\_native\_selection/20260522\_broad13/}
-\item \texttt{results/prospective\_native\_selection/20260523\_learned\_acceptance\_eval/}
-\item \texttt{results/prospective\_native\_selection/20260523\_hybrid\_acceptance\_queue/}
-\item \texttt{release\_assets/cs348k\_broad13\_results\_data\_2026-05-22.tar.zst.part-*}
-\item \texttt{release\_assets/cs348k\_learned\_acceptance\_eval\_2026-05-23.tar.zst}
-\item \texttt{release\_assets/cs348k\_hybrid\_acceptance\_queue\_2026-05-23.tar.zst}
-\end{itemize}
+Tae Hoon Yang completed the project solo: prompt suite design, KIMODO/SONIC
+integration, MuJoCo physical checks, prompt-repair loop, video rendering, slide
+deck, and final report.
 
 \bibliographystyle{plain}
 \bibliography{references}
