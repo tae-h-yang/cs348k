@@ -123,7 +123,7 @@ SONIC trackability & fall frame, track seconds, RMSE, root error & lower speed/a
 \end{tabular}
 \end{table}
 
-A typical serialized record looks like:
+An illustrative serialized torque/root-wrench record looks like:
 
 \begin{quote}\small
 \texttt{failure=torque\_root\_wrench; joint=right\_shoulder\_pitch;}\\
@@ -145,7 +145,7 @@ allowed repair vocabulary.\\
 arm swing and shorter steps while keeping both feet under the body.''
 \end{quote}
 
-This LLM interface is useful because it turns simulator evidence into a
+This LLM interface is designed to turn simulator evidence into a
 generator-facing instruction. However, the aggregate repair numbers reported in
 this paper are from the deterministic retiming/smoothing baseline; prompt
 regeneration should be counted separately once a full regeneration run is
@@ -255,7 +255,7 @@ Metric & Original & Repaired \\
 \midrule
 Physical pass & 48/100 & 53/100 \\
 Critic accept & 47/100 & 54/100 \\
-Reject/regenerate & 18/100 & 16/100 \\
+Critic reject status & 18/100 & 16/100 \\
 SONIC 4 s no-fall & 53/100 & 56/100 \\
 Mean SONIC seconds & 2.855 & 3.007 \\
 Mean RMSE & 0.156 & 0.142 \\
@@ -264,6 +264,10 @@ Contact artifact & 0.264 & 0.247 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Here, ``critic reject status'' means the candidate is not accepted by the
+current gate and should trigger another attempt; it is not counted as evidence
+that a full KIMODO prompt-regeneration run was performed.
 
 The repair pass produced seven SONIC rescues and four regressions. The main
 repair videos show representative improvements: `forward\_walk' becomes slower

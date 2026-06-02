@@ -87,7 +87,7 @@ that can explain the failure and condition the next repair attempt:
 | contact artifact | foot slip, penetration, impulse spike | clean foot placement |
 | SONIC trackability | fall frame, track seconds, RMSE, root error | lower speed or amplitude |
 
-An example torque/root-wrench record is:
+An illustrative torque/root-wrench record is:
 
 ```text
 failure=torque_root_wrench;
@@ -218,12 +218,16 @@ and selects candidates with the same physical-awareness critic and SONIC gate.
 |---|---:|---:|
 | physical pass | 48/100 | 53/100 |
 | critic accept | 47/100 | 54/100 |
-| reject / regenerate | 18/100 | 16/100 |
+| critic reject status | 18/100 | 16/100 |
 | SONIC 4 s no-fall | 53/100 | 56/100 |
 | mean SONIC sec. | 2.855 | 3.007 |
 | mean RMSE | 0.156 | 0.142 |
 | mean risk | 41.548 | 37.916 |
 | contact artifact | 0.264 | 0.247 |
+
+Here, "critic reject status" means the candidate is not accepted by the current
+gate and should trigger another attempt. It is not counted as evidence that a
+full KIMODO prompt-regeneration run was performed.
 
 The repair pass produced seven SONIC rescues and four regressions. The main
 repair videos show representative improvements:
